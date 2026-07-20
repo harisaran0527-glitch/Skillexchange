@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────────────────── */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    @apply text-slate-800 dark:text-slate-100 antialiased;
+  }
+  textarea {
+    font-family: inherit;
+  }
+}
+
+/* ── Variables ────────────────────────────────────── */
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --color-primary: 99 102 241;     /* indigo-500 */
+  --color-secondary: 139 92 246;   /* violet-500 */
+}
+
+.dark {
+  --glass-bg: rgba(15, 23, 42, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Glassmorphism card ───────────────────────────── */
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.35));
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.dark .glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Buttons ─────────────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-xl font-semibold text-sm text-white transition-all;
+    background: linear-gradient(135deg, rgb(var(--color-primary)), rgb(var(--color-secondary)));
+    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
+  }
+  .btn-primary:hover:not(:disabled) {
+    @apply scale-[1.02];
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.45);
+  }
+  .btn-primary:disabled {
+    @apply opacity-60 cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-xl font-medium text-sm
+           text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700
+           hover:bg-slate-50 dark:hover:bg-slate-800 transition-all;
+  }
+
+  /* ── Inputs ───────────────────────────────────── */
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700
+           bg-white/70 dark:bg-slate-800/60
+           text-slate-900 dark:text-slate-100
+           placeholder-slate-400 dark:placeholder-slate-500
+           focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400
+           transition-all text-sm;
+  }
+
+  /* ── Skill tags ───────────────────────────────── */
+  .skill-tag-offered {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+           bg-indigo-50 text-indigo-700 border border-indigo-100
+           dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800;
+  }
+
+  .skill-tag-needed {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+           bg-purple-50 text-purple-700 border border-purple-100
+           dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800;
+  }
+}
+
+/* ── App container ───────────────────────────────── */
+.app-container {
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+
+/* ── Admin Portal Specific ───────────────────────── */
+.admin-card {
+  background: rgba(17, 19, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.admin-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+.admin-input:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.admin-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 400% 100%;
+  animation: adminSkeletonLoad 1.5s ease-in-out infinite;
+}
+
+@keyframes adminSkeletonLoad {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

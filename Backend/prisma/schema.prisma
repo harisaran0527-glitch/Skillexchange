@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  name             String
+  email            String    @unique
+  password         String
+  department       String    @default("")
+  section          String    @default("")
+  year             String    @default("")
+  college          String    @default("")
+  profileImage     String    @default("")
+  skillsOffered    String[]
+  completedCourses String[]
+  certificates     String[]
+  portfolioLinks   String[]
+  socialLinks      String[]
+  availability     String    @default("available") // "available", "busy", "offline"
+  rating           Float     @default(0)
+  reviewCount      Int       @default(0)
+  isActive         Boolean   @default(true)
+  isSuspended      Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  requestsSent       Request[]      @relation("RequestsSent")
+  requestsReceived   Request[]      @relation("RequestsReceived")
+  notifications      Notification[]
+  reviewsGiven       Review[]       @relation("ReviewsGiven")
+  reviewsReceived    Review[]       @relation("ReviewsReceived")
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("superadmin")
+  avatar    String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String   @default("")
+  category    String   @default("General")
+  icon        String   @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Request {
+  id         String   @id @default(uuid())
+  skill      String
+  courseName String   @default("")
+  message    String   @default("")
+  status     String   @default("pending") // "pending", "approved", "rejected"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  fromUserId String
+  toUserId   String
+  fromUser   User    @relation("RequestsSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User    @relation("RequestsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info") // "info", "request", "accepted", "rejected", "system"
+  isRead    Boolean  @default(false)
+  link      String   @default("")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  rating     Int
+  comment    String   @default("")
+  createdAt  DateTime @default(now())
+
+  reviewerId String
+  revieweeId String
+  reviewer   User    @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee   User    @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade)
+}
+
+model EmailLog {
+  id        String   @id @default(uuid())
+  toEmail   String
+  toName    String   @default("")
+  subject   String
+  body      String
+  status    String   @default("sent") // "sent", "failed"
+  createdAt DateTime @default(now())
+}
+
+model Skill {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
