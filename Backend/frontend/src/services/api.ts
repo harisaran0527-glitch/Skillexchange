@@ -1,7 +1,7 @@
 // Central API client for SkillSwap
 // Uses fetch() (no extra deps needed) — auto-attaches JWT from localStorage
 
-const BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api'
+const BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'https://skillexchange-su69.onrender.com/api'
 
 function getToken(): string | null {
   return localStorage.getItem('skillswap_token')
