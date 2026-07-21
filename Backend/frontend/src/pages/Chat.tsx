@@ -28,7 +28,8 @@ export default function Chat() {
       usersApi.getUserById(id).then(setPartner).catch(() => navigate(-1))
       
       // Check if chat is unlocked (only if there's an Accepted request)
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chat/${id}`, {
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      fetch(`${baseUrl}/api/chat/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       })
       .then(res => {
@@ -115,7 +116,8 @@ export default function Chat() {
     setInput('')
     
     // API call to send message
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/chat`, {
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
