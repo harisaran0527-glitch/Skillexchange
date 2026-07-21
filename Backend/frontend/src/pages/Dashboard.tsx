@@ -9,8 +9,10 @@ export default function Dashboard() {
   const { user } = useAuth()
   const [matches, setMatches] = useState<MatchResult[]>([])
   const [loadingMatches, setLoadingMatches] = useState(true)
+  const [stats, setStats] = useState<any>(null)
 
   useEffect(() => {
+    usersApi.getPublicStats().then(setStats).catch(() => {})
     matchApi.getMatches()
       .then(data => setMatches(data.slice(0, 6)))
       .catch(() => setMatches([]))
@@ -41,6 +43,37 @@ export default function Dashboard() {
             <Link to="/settings" className="btn-secondary text-sm">Edit Profile</Link>
           </div>
         </motion.div>
+
+        {/* Global Statistics */}
+        {stats && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="grid grid-cols-2 md:grid-cols-5 gap-4"
+          >
+            <div className="glass-card p-4 rounded-2xl text-center">
+              <div className="text-2xl font-bold text-indigo-400">{stats.totalStudents}</div>
+              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Total Students</div>
+            </div>
+            <div className="glass-card p-4 rounded-2xl text-center">
+              <div className="text-2xl font-bold text-emerald-400">{stats.totalSkills}</div>
+              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Total Skills</div>
+            </div>
+            <div className="glass-card p-4 rounded-2xl text-center">
+              <div className="text-2xl font-bold text-amber-400">{stats.activeRequests}</div>
+              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Active Requests</div>
+            </div>
+            <div className="glass-card p-4 rounded-2xl text-center">
+              <div className="text-2xl font-bold text-teal-400">{stats.completedExchanges}</div>
+              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Exchanges Done</div>
+            </div>
+            <div className="glass-card p-4 rounded-2xl text-center md:col-span-1 col-span-2">
+              <div className="text-2xl font-bold text-purple-400">{stats.totalMessages}</div>
+              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Total Messages</div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Skills summary */}
         {user && (

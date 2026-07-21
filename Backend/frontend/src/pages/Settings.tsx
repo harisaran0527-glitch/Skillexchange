@@ -85,6 +85,8 @@ export default function Settings() {
       setSkillsOffered(resp.user.skillsOffered || [])
       setSkillInput('')
       await refreshUser()
+      setSavedMsg('Skill added successfully!')
+      setTimeout(() => setSavedMsg(''), 3000)
     } catch (err: any) {
       setError(err.message || 'Failed to add skill')
     }
@@ -95,6 +97,8 @@ export default function Settings() {
       const resp = await usersApi.removeSkill('offered', skill)
       setSkillsOffered(resp.user.skillsOffered || [])
       await refreshUser()
+      setSavedMsg('Skill removed successfully!')
+      setTimeout(() => setSavedMsg(''), 3000)
     } catch (err: any) {
       setError(err.message || 'Failed to remove skill')
     }

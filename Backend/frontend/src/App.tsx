@@ -7,7 +7,7 @@ import PrivateRoute from './components/ui/PrivateRoute'
 import AdminPrivateRoute from './admin/AdminPrivateRoute'
 import LoadingScreen from './components/feedback/LoadingScreen'
 
-const Landing = lazy(() => import('./pages/Landing'))
+
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -40,7 +40,7 @@ export default function App() {
           <Suspense fallback={<LoadingScreen />}>
             <Routes>
               {/* Public routes */}
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/discovery" element={<Discovery />} />

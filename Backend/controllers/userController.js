@@ -1,5 +1,35 @@
 const User = require('../models/User')
+const LearningRequest = require('../models/LearningRequest')
+const Message = require('../models/Message')
 
+// Get public system stats for the dashboard
+exports.getPublicStats = async (req, res, next) => {
+  try {
+    const totalStudents = await User.countDocuments()
+    
+    // Count unique skills
+    const usersWithSkills = await User.find({}).select('skillsOffered')
+    const skillSet = new Set()
+    usersWithSkills.forEach(u => {
+      if (u.skillsOffered) u.skillsOffered.forEach(s => skillSet.add(s.toLowerCase().trim()))
+    })
+    const totalSkills = skillSet.size
+    
+    const activeRequests = await LearningRequest.countDocuments({ status: 'Pending' })
+    const completedExchanges = await LearningRequest.countDocuments({ status: 'Accepted' })
+    const totalMessages = await Message.countDocuments()
+    
+    res.json({
+      totalStudents,
+      totalSkills,
+      activeRequests,
+      completedExchanges,
+      totalMessages
+    })
+  } catch (err) {
+    next(err)
+  }
+}
 // Get authenticated user's profile
 exports.getProfile = async (req, res, next) => {
   try {

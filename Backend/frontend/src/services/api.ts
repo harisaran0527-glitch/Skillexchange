@@ -70,6 +70,7 @@ export const authApi = {
 
 // ── Users ─────────────────────────────────────────────
 export const usersApi = {
+  getPublicStats: () => request<any>('/users/public-stats'),
   getProfile: () => request<AuthUser>('/users/profile'),
 
   updateProfile: (data: Partial<AuthUser>) =>
