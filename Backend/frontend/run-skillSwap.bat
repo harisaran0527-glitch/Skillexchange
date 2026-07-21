@@ -21,7 +21,8 @@ if exist "%ProgramFiles(x86)%\nodejs\node.exe" (
 
 cd /d "%~dp0"
 echo Installing frontend dependencies...
-call npm installnif errorlevel 1 (
+call npm install
+if errorlevel 1 (
   echo.
   echo npm install failed. Please check the output for errors.
   pause
