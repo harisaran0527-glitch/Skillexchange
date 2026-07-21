@@ -97,14 +97,14 @@ app.get('/', (req, res) => {
 // Health
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
 
-// Error handling
-app.use(notFound)
-app.use(errorHandler)
-
 // Readiness endpoint
 app.get('/api/readiness', (req, res) => {
   res.json({ readyState: 1 })
 })
+
+// Error handling
+app.use(notFound)
+app.use(errorHandler)
 
 // Start server async
 async function startServer() {
