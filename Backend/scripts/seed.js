@@ -24,20 +24,27 @@ async function runSeed() {
   console.log('Connected successfully. Seeding data via Mongoose...')
 
   // ── Seed Admin ──────────────────────────────────────────────────
-  const adminExists = await Admin.findOne({ email: 'admin@skillswap.com' })
-  if (!adminExists) {
-    const salt = await bcrypt.genSalt(10)
-    const hashed = await bcrypt.hash('Admin@123', salt)
-    const admin = new Admin({
-      name: 'SkillSwap Admin',
-      email: 'admin@skillswap.com',
-      password: hashed,
-      role: 'superadmin'
-    })
-    await admin.save()
-    console.log('✅ Admin created: admin@skillswap.com / Admin@123')
+  const seedEmail = process.env.SEED_ADMIN_EMAIL
+  const seedPassword = process.env.SEED_ADMIN_PASSWORD
+
+  if (seedEmail && seedPassword) {
+    const adminExists = await Admin.findOne({ email: seedEmail.toLowerCase().trim() })
+    if (!adminExists) {
+      const salt = await bcrypt.genSalt(10)
+      const hashed = await bcrypt.hash(seedPassword, salt)
+      const admin = new Admin({
+        name: 'SkillSwap Admin',
+        email: seedEmail.toLowerCase().trim(),
+        password: hashed,
+        role: 'superadmin'
+      })
+      await admin.save()
+      console.log(`✅ Admin created successfully for email: ${seedEmail}`)
+    } else {
+      console.log('ℹ️  Admin user already exists in database')
+    }
   } else {
-    console.log('ℹ️  Admin already exists')
+    console.log('ℹ️  Skipped admin seeding: SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD environment variables not configured.')
   }
 
   // ── Seed Demo Students ──────────────────────────────────────────
@@ -131,7 +138,7 @@ async function runSeed() {
   }
 
   console.log('\n🚀 Seed complete!\n')
-  console.log('Admin Login: admin@skillswap.com / Admin@123')
+  console.log('Admin Login: Use your seeded admin account credentials.')
   console.log('Demo Student: asha@demo.com / demo1234')
 }
 

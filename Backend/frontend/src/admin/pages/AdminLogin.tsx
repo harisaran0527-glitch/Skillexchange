@@ -87,7 +87,7 @@ export default function AdminLogin() {
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Admin Email</label>
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="admin@skillswap.com"
+                placeholder="admin@example.com"
                 className="admin-input w-full"
                 autoComplete="email"
               />

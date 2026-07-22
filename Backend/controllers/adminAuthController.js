@@ -1,6 +1,7 @@
 const Admin = require('../models/Admin')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const { getDbError } = require('../config/mongoDb')
 
 // Use a consistent fallback so sign and verify always use the same secret
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'skillswap_ADMIN_ultra_secret_2024'
@@ -12,8 +13,6 @@ const signAdminToken = (admin) => {
     { expiresIn: process.env.ADMIN_JWT_EXPIRES_IN || '1d' }
   )
 }
-
-const { getDbError } = require('../config/mongoDb')
 
 // POST /api/admin/auth/login
 exports.adminLogin = async (req, res, next) => {
@@ -28,28 +27,6 @@ exports.adminLogin = async (req, res, next) => {
     }
 
     const inputEmail = email.toLowerCase().trim()
-
-    // ── Hardcoded Admin Check ────────────────────────────────────────
-    if (inputEmail === 'skillexchange@gmail.com' && password === 'saran@2007') {
-      console.log('[Admin Login Attempt] Success: Static admin logged in (skillexchange@gmail.com)')
-      const admin = { id: 'static-admin-id', name: 'SkillSwap Admin', email: 'skillexchange@gmail.com', role: 'superadmin' }
-      const token = signAdminToken(admin)
-      return res.json({
-        token,
-        admin
-      })
-    }
-
-    // Also support default admin requirement from instruction
-    if (inputEmail === 'admin@skillswap.com' && password === 'Admin@123') {
-      console.log('[Admin Login Attempt] Success: Static admin logged in (admin@skillswap.com)')
-      const admin = { id: 'static-admin-id-2', name: 'SkillSwap Admin', email: 'admin@skillswap.com', role: 'superadmin' }
-      const token = signAdminToken(admin)
-      return res.json({
-        token,
-        admin
-      })
-    }
 
     // Fallback to database lookup - check database connection error first
     const dbErr = getDbError()
@@ -93,17 +70,6 @@ exports.adminLogin = async (req, res, next) => {
 // GET /api/admin/auth/me
 exports.adminMe = async (req, res, next) => {
   try {
-    if (req.admin.id === 'static-admin-id' || req.admin.id === 'static-admin-id-2') {
-      return res.json({
-        id: req.admin.id,
-        name: 'SkillSwap Admin',
-        email: req.admin.email,
-        role: 'superadmin',
-        avatar: '',
-        createdAt: new Date()
-      })
-    }
-
     const admin = await Admin.findById(req.admin.id).select('-password')
     if (!admin) return res.status(404).json({ message: 'Admin not found' })
     res.json({
@@ -125,10 +91,6 @@ exports.changePassword = async (req, res, next) => {
     const { oldPassword, newPassword } = req.body
     if (!oldPassword || !newPassword) {
       return res.status(400).json({ message: 'Both old and new password required' })
-    }
-
-    if (req.admin.id === 'static-admin-id' || req.admin.id === 'static-admin-id-2') {
-      return res.json({ message: 'Static admin password cannot be changed programmatically.' })
     }
 
     const admin = await Admin.findById(req.admin.id)
@@ -153,17 +115,6 @@ exports.changePassword = async (req, res, next) => {
 exports.updateAdminProfile = async (req, res, next) => {
   try {
     const { name } = req.body
-
-    if (req.admin.id === 'static-admin-id' || req.admin.id === 'static-admin-id-2') {
-      return res.json({
-        id: req.admin.id,
-        name: name,
-        email: req.admin.email,
-        role: 'superadmin',
-        avatar: '',
-        createdAt: new Date()
-      })
-    }
 
     const admin = await Admin.findByIdAndUpdate(
       req.admin.id,
