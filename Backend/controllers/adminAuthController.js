@@ -2,10 +2,13 @@ const Admin = require('../models/Admin')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
+// Use a consistent fallback so sign and verify always use the same secret
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'skillswap_ADMIN_ultra_secret_2024'
+
 const signAdminToken = (admin) => {
   return jwt.sign(
     { id: admin.id || admin._id, email: admin.email, name: admin.name, isAdmin: true },
-    process.env.ADMIN_JWT_SECRET,
+    ADMIN_JWT_SECRET,
     { expiresIn: process.env.ADMIN_JWT_EXPIRES_IN || '1d' }
   )
 }
