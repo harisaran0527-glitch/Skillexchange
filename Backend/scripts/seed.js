@@ -28,20 +28,25 @@ async function runSeed() {
   const seedPassword = process.env.SEED_ADMIN_PASSWORD
 
   if (seedEmail && seedPassword) {
-    const adminExists = await Admin.findOne({ email: seedEmail.toLowerCase().trim() })
-    if (!adminExists) {
-      const salt = await bcrypt.genSalt(10)
-      const hashed = await bcrypt.hash(seedPassword, salt)
-      const admin = new Admin({
-        name: 'SkillSwap Admin',
-        email: seedEmail.toLowerCase().trim(),
-        password: hashed,
-        role: 'superadmin'
-      })
-      await admin.save()
-      console.log(`✅ Admin created successfully for email: ${seedEmail}`)
-    } else {
-      console.log('ℹ️  Admin user already exists in database')
+    try {
+      const targetEmail = seedEmail.toLowerCase().trim()
+      const adminExists = await Admin.findOne({ email: targetEmail })
+      if (!adminExists) {
+        const salt = await bcrypt.genSalt(10)
+        const hashed = await bcrypt.hash(seedPassword, salt)
+        const admin = new Admin({
+          name: 'SkillSwap Admin',
+          email: targetEmail,
+          password: hashed,
+          role: 'superadmin'
+        })
+        await admin.save()
+        console.log('Admin user created successfully')
+      } else {
+        console.log('Admin user already exists')
+      }
+    } catch (error) {
+      console.error('Seeding admin failed:', error.message)
     }
   } else {
     console.log('ℹ️  Skipped admin seeding: SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD environment variables not configured.')
