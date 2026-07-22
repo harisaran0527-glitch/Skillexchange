@@ -13,11 +13,17 @@ const signAdminToken = (admin) => {
   )
 }
 
+const { getDbError } = require('../config/mongoDb')
+
 // POST /api/admin/auth/login
 exports.adminLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body
+    
+    console.log(`[Admin Login Attempt] Email: ${email || '(none)'}`)
+
     if (!email || !password) {
+      console.warn('[Admin Login Attempt] Failed: Email or password not provided')
       return res.status(400).json({ message: 'Email and password required' })
     }
 
@@ -25,6 +31,7 @@ exports.adminLogin = async (req, res, next) => {
 
     // ── Hardcoded Admin Check ────────────────────────────────────────
     if (inputEmail === 'skillexchange@gmail.com' && password === 'saran@2007') {
+      console.log('[Admin Login Attempt] Success: Static admin logged in (skillexchange@gmail.com)')
       const admin = { id: 'static-admin-id', name: 'SkillSwap Admin', email: 'skillexchange@gmail.com', role: 'superadmin' }
       const token = signAdminToken(admin)
       return res.json({
@@ -35,6 +42,7 @@ exports.adminLogin = async (req, res, next) => {
 
     // Also support default admin requirement from instruction
     if (inputEmail === 'admin@skillswap.com' && password === 'Admin@123') {
+      console.log('[Admin Login Attempt] Success: Static admin logged in (admin@skillswap.com)')
       const admin = { id: 'static-admin-id-2', name: 'SkillSwap Admin', email: 'admin@skillswap.com', role: 'superadmin' }
       const token = signAdminToken(admin)
       return res.json({
@@ -43,17 +51,29 @@ exports.adminLogin = async (req, res, next) => {
       })
     }
 
-    // Fallback to database lookup
+    // Fallback to database lookup - check database connection error first
+    const dbErr = getDbError()
+    if (dbErr) {
+      console.error(`[Admin Login Attempt] Failed: Database connection error: ${dbErr.message}`)
+      return res.status(500).json({
+        message: `Database Connection Failed: ${dbErr.message}. Ensure your MongoDB Atlas credentials and IP access list are configured correctly on Render.`
+      })
+    }
+
+    console.log('[Admin Login Attempt] Performing database lookup for admin account')
     const admin = await Admin.findOne({ email: inputEmail })
     if (!admin) {
-      return res.status(401).json({ message: 'Invalid admin credentials' })
+      console.warn(`[Admin Login Attempt] Failed: No admin user found for email: ${inputEmail}`)
+      return res.status(401).json({ message: 'Invalid credentials: Admin account does not exist' })
     }
 
     const isMatch = await bcrypt.compare(password, admin.password)
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid admin credentials' })
+      console.warn(`[Admin Login Attempt] Failed: Incorrect password for email: ${inputEmail}`)
+      return res.status(401).json({ message: 'Invalid credentials: Password is incorrect' })
     }
 
+    console.log(`[Admin Login Attempt] Success: DB admin logged in (${inputEmail})`)
     const token = signAdminToken(admin)
     res.json({
       token,
@@ -65,6 +85,7 @@ exports.adminLogin = async (req, res, next) => {
       }
     })
   } catch (err) {
+    console.error('[Admin Login Attempt] Error occurred:', err.message)
     next(err)
   }
 }

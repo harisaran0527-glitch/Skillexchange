@@ -20,6 +20,6 @@ services:
       - key: ADMIN_JWT_EXPIRES_IN
         value: 1d
       - key: CORS_ORIGIN
-        value: "https://skillexchange-su69.onrender.com,https://skill-exchange-blush.vercel.app,https://skillexchange.vercel.app"
+        value: "https://skillexchange.onrender.com,https://skill-exchange-blush.vercel.app,https://skillexchange.vercel.app"
       - key: CORS_CREDENTIALS
         value: "true"

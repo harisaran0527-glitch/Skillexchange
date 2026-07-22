@@ -25,7 +25,7 @@ async function adminRequest<T>(path: string, options: RequestInit = {}): Promise
     ...(options.headers as Record<string,string>),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'https://skillexchange-su69.onrender.com/api'
+  const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'https://skillexchange.onrender.com/api'
   const res = await fetch(`${baseUrl}/admin${path}`, { ...options, headers })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }))
