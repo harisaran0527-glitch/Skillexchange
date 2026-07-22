@@ -32,7 +32,7 @@ exports.adminLogin = async (req, res, next) => {
         admin
       })
     }
-    
+
     // Also support default admin requirement from instruction
     if (inputEmail === 'admin@skillswap.com' && password === 'Admin@123') {
       const admin = { id: 'static-admin-id-2', name: 'SkillSwap Admin', email: 'admin@skillswap.com', role: 'superadmin' }
@@ -86,12 +86,12 @@ exports.adminMe = async (req, res, next) => {
     const admin = await Admin.findById(req.admin.id).select('-password')
     if (!admin) return res.status(404).json({ message: 'Admin not found' })
     res.json({
-        id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-        avatar: admin.avatar,
-        createdAt: admin.createdAt
+      id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      avatar: admin.avatar,
+      createdAt: admin.createdAt
     })
   } catch (err) {
     next(err)
@@ -118,10 +118,10 @@ exports.changePassword = async (req, res, next) => {
 
     const salt = await bcrypt.genSalt(10)
     const hashed = await bcrypt.hash(newPassword, salt)
-    
+
     admin.password = hashed
     await admin.save()
-    
+
     res.json({ message: 'Password changed successfully' })
   } catch (err) {
     next(err)
@@ -149,14 +149,14 @@ exports.updateAdminProfile = async (req, res, next) => {
       { name },
       { new: true, select: '-password' }
     )
-    
+
     res.json({
-        id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-        avatar: admin.avatar,
-        createdAt: admin.createdAt
+      id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      avatar: admin.avatar,
+      createdAt: admin.createdAt
     })
   } catch (err) {
     next(err)

@@ -15,7 +15,8 @@ function randomDate(monthsBack) {
 
 async function runSeed() {
   console.log('Connecting to MongoDB...')
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/skillswap')
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/skillswap'
+  await mongoose.connect(uri)
   console.log('Connected. Starting seeding database via Mongoose...')
 
   // ── Seed Admin ──────────────────────────────────────────────────
