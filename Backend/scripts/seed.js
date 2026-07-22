@@ -14,10 +14,14 @@ function randomDate(monthsBack) {
 }
 
 async function runSeed() {
-  console.log('Connecting to MongoDB...')
-  const uri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/skillswap'
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI
+  if (!uri) {
+    console.error('Error: MongoDB URI not configured for seeding. Please set MONGODB_URI or MONGO_URI.')
+    process.exit(1)
+  }
+  console.log('Connecting to MongoDB database...')
   await mongoose.connect(uri)
-  console.log('Connected. Starting seeding database via Mongoose...')
+  console.log('Connected successfully. Seeding data via Mongoose...')
 
   // ── Seed Admin ──────────────────────────────────────────────────
   const adminExists = await Admin.findOne({ email: 'admin@skillswap.com' })
