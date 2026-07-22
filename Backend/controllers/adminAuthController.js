@@ -3,8 +3,10 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { getDbError } = require('../config/mongoDb')
 
-// Use a consistent fallback so sign and verify always use the same secret
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'skillswap_ADMIN_ultra_secret_2024'
+if (!process.env.ADMIN_JWT_SECRET) {
+  throw new Error('FATAL: ADMIN_JWT_SECRET environment variable is missing!')
+}
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET
 
 const signAdminToken = (admin) => {
   return jwt.sign(

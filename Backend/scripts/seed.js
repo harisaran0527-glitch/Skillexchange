@@ -27,34 +27,47 @@ async function runSeed() {
   const seedEmail = process.env.SEED_ADMIN_EMAIL
   const seedPassword = process.env.SEED_ADMIN_PASSWORD
 
-  if (seedEmail && seedPassword) {
-    try {
-      const targetEmail = seedEmail.toLowerCase().trim()
-      const adminExists = await Admin.findOne({ email: targetEmail })
-      if (!adminExists) {
-        const salt = await bcrypt.genSalt(10)
-        const hashed = await bcrypt.hash(seedPassword, salt)
-        const admin = new Admin({
-          name: 'SkillSwap Admin',
-          email: targetEmail,
-          password: hashed,
-          role: 'superadmin'
-        })
-        await admin.save()
-        console.log('Admin user created successfully')
-      } else {
-        console.log('Admin user already exists')
-      }
-    } catch (error) {
-      console.error('Seeding admin failed:', error.message)
-    }
-  } else {
-    console.log('ℹ️  Skipped admin seeding: SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD environment variables not configured.')
+  if (!seedEmail) {
+    console.error('❌ Error: SEED_ADMIN_EMAIL environment variable is required.')
+    process.exit(1)
+  }
+  if (!seedPassword) {
+    console.error('❌ Error: SEED_ADMIN_PASSWORD environment variable is required.')
+    process.exit(1)
+  }
+  if (seedPassword.length < 8) {
+    console.error('❌ Error: SEED_ADMIN_PASSWORD must be at least 8 characters long.')
+    process.exit(1)
   }
 
-  // ── Seed Demo Students ──────────────────────────────────────────
-  const existingCount = await User.countDocuments()
-  if (existingCount < 5) {
+  try {
+    const targetEmail = seedEmail.toLowerCase().trim()
+    const adminExists = await Admin.findOne({ email: targetEmail })
+    if (!adminExists) {
+      const salt = await bcrypt.genSalt(10)
+      const hashed = await bcrypt.hash(seedPassword, salt)
+      const admin = new Admin({
+        name: 'SkillSwap Admin',
+        email: targetEmail,
+        password: hashed,
+        role: 'superadmin'
+      })
+      await admin.save()
+      console.log('✅ Admin user created successfully')
+    } else {
+      console.log('ℹ️  Admin user already exists')
+    }
+  } catch (error) {
+    console.error('❌ Seeding admin failed:', error.message)
+    process.exit(1)
+  }
+
+  // ── Seed Demo Data ──────────────────────────────────────────────
+  if (process.env.NODE_ENV === 'production') {
+    console.log('ℹ️  Skipping demo data seeding in production environment.')
+  } else {
+    const existingCount = await User.countDocuments()
+    if (existingCount < 5) {
     const salt = await bcrypt.genSalt(10)
     const hashed = await bcrypt.hash('demo1234', salt)
 
@@ -138,8 +151,10 @@ async function runSeed() {
     }
     console.log(`✅ Populated global skills database with ${uniqueSkills.size} unique skills`)
 
+    }
   } else {
     console.log(`ℹ️  ${existingCount} students already exist — skipping student seed`)
+  }
   }
 
   console.log('\n🚀 Seed complete!\n')

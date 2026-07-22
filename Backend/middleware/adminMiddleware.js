@@ -1,7 +1,9 @@
 const jwt = require('jsonwebtoken')
 
-// Must match the same fallback used in adminAuthController
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'skillswap_ADMIN_ultra_secret_2024'
+if (!process.env.ADMIN_JWT_SECRET) {
+  throw new Error('FATAL: ADMIN_JWT_SECRET environment variable is missing!')
+}
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET
 
 exports.adminProtect = (req, res, next) => {
   let token
