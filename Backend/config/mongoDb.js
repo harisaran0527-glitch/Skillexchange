@@ -7,6 +7,10 @@ let dbError = null
 const getDbError = () => dbError
 
 const connectMongoDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    return
+  }
+
   const uri = process.env.MONGODB_URI || process.env.MONGO_URI
 
   // Check if missing or set to placeholder
