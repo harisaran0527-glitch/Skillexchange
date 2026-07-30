@@ -13,6 +13,6 @@ COPY . .
 # Build steps if needed (none)
 
 ENV NODE_ENV=production
-EXPOSE 5000
+EXPOSE 5005
 
 CMD ["node", "server.js"]

@@ -1,8 +1,8 @@
 import React, { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { SocketProvider } from './context/SocketContext'
-import { AdminAuthProvider } from './admin/context/AdminAuthContext'
+import { AdminAuthProvider, useAdminAuth } from './admin/context/AdminAuthContext'
 import PrivateRoute from './components/ui/PrivateRoute'
 import AdminPrivateRoute from './admin/AdminPrivateRoute'
 import LoadingScreen from './components/feedback/LoadingScreen'
@@ -12,7 +12,7 @@ const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Profile = lazy(() => import('./pages/Profile'))
-const Discovery = lazy(() => import('./pages/Discovery'))
+const BestStudents = lazy(() => import('./pages/BestStudents'))
 const Matches = lazy(() => import('./pages/Matches'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Settings = lazy(() => import('./pages/Settings'))
@@ -32,6 +32,16 @@ const CourseSearch = lazy(() => import('./pages/CourseSearch'))
 const StudentProfileView = lazy(() => import('./pages/StudentProfileView'))
 const Chat = lazy(() => import('./pages/Chat'))
 
+function AdminEntryRoute() {
+  const { token } = useAdminAuth()
+  return token ? <AdminDashboard /> : <AdminLogin />
+}
+
+function StudentEntryRoute() {
+  const { token } = useAuth()
+  return token ? <Dashboard /> : <Login />
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -39,27 +49,29 @@ export default function App() {
         <AdminAuthProvider>
           <Suspense fallback={<LoadingScreen />}>
             <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/discovery" element={<Discovery />} />
+              {/* Main Entry Links */}
+              <Route path="/admin" element={<AdminEntryRoute />} />
+              <Route path="/student" element={<StudentEntryRoute />} />
+
+              {/* Aliases & Redirects */}
+              <Route path="/" element={<Navigate to="/student" replace />} />
+              <Route path="/login" element={<Navigate to="/student" replace />} />
+              <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
 
               {/* Protected Student routes */}
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/profile/:id" element={<PrivateRoute><Profile /></PrivateRoute>} />
               <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-              <Route path="/matches" element={<PrivateRoute><Matches /></PrivateRoute>} />
               <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
               <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
               <Route path="/search" element={<PrivateRoute><CourseSearch /></PrivateRoute>} />
               <Route path="/student/:id" element={<PrivateRoute><StudentProfileView /></PrivateRoute>} />
               <Route path="/chat" element={<PrivateRoute><Chat /></PrivateRoute>} />
               <Route path="/chat/:id" element={<PrivateRoute><Chat /></PrivateRoute>} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/best-students" element={<BestStudents />} />
 
-              {/* Admin Portal */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              {/* Protected Admin routes */}
               <Route path="/admin/dashboard" element={<AdminPrivateRoute><AdminDashboard /></AdminPrivateRoute>} />
               <Route path="/admin/students" element={<AdminPrivateRoute><AdminStudents /></AdminPrivateRoute>} />
               <Route path="/admin/skills" element={<AdminPrivateRoute><AdminSkills /></AdminPrivateRoute>} />
@@ -68,7 +80,7 @@ export default function App() {
               <Route path="/admin/reports" element={<AdminPrivateRoute><AdminReports /></AdminPrivateRoute>} />
               <Route path="/admin/settings" element={<AdminPrivateRoute><AdminSettings /></AdminPrivateRoute>} />
 
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/student" replace />} />
             </Routes>
           </Suspense>
         </AdminAuthProvider>
@@ -76,3 +88,4 @@ export default function App() {
     </AuthProvider>
   )
 }
+

@@ -1,11 +1,15 @@
 const Course = require('../models/Course')
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 // GET /api/courses - list all courses
 exports.getCourses = async (req, res, next) => {
   try {
     const { q, category } = req.query
     const where = {}
-    if (q) where.name = { $regex: q, $options: 'i' }
+    if (q) where.name = { $regex: escapeRegex(q.trim()), $options: 'i' }
     if (category) where.category = category
 
     const courses = await Course.find(where).sort({ name: 1 })

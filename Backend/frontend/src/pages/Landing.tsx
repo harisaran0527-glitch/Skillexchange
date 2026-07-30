@@ -41,12 +41,10 @@ export default function Landing() {
               {user ? (
                 <>
                   <Link to="/dashboard" className="btn-primary text-base px-6 py-3">Go to Dashboard</Link>
-                  <Link to="/discovery" className="btn-secondary text-base px-6 py-3">Discover Students</Link>
                 </>
               ) : (
                 <>
-                  <Link to="/register" className="btn-primary text-base px-6 py-3">Get Started — Free</Link>
-                  <Link to="/discovery" className="btn-secondary text-base px-6 py-3">Browse Students</Link>
+                  <Link to="/login" className="btn-primary text-base px-6 py-3">Sign In</Link>
                 </>
               )}
             </div>
@@ -143,21 +141,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* CTA */}
-      {!user && (
-        <section className="py-12">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="glass-card rounded-3xl p-10 text-center"
-          >
-            <h2 className="text-2xl font-bold mb-3">Ready to start skill-swapping?</h2>
-            <p className="text-slate-500 mb-6">Join your peers and start learning — totally free.</p>
-            <Link to="/register" className="btn-primary text-base px-8 py-3">Create Free Account</Link>
-          </motion.div>
-        </section>
-      )}
+
     </MainLayout>
   )
 }

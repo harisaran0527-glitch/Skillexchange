@@ -11,12 +11,37 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    watch: {
+      usePolling: true,
+      interval: 100,
+    },
     proxy: {
       // Proxy all /api requests to the Express backend during development
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5005',
         changeOrigin: true,
         secure: false,
+      },
+      // Proxy socket.io connections
+      '/socket.io': {
+        target: 'http://127.0.0.1:5005',
+        ws: true,
+        changeOrigin: true,
+      }
+    }
+  },
+  preview: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5005',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/socket.io': {
+        target: 'http://127.0.0.1:5005',
+        ws: true,
+        changeOrigin: true,
       }
     }
   }

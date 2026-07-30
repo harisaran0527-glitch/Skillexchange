@@ -1,48 +1,94 @@
 import { useState, useEffect } from 'react'
+import AdminLayout from '../layouts/AdminLayout'
 import { adminCoursesApi, Course } from '../services/adminApi'
+import { Search, Plus, Edit2, Trash2, Video, FileText, ExternalLink, Play, Download } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import QuestionBankModal from '../../components/QuestionBankModal'
 
-const CATEGORIES = ['General', 'Programming', 'Web Development', 'Data Science', 'Design', 'AI & ML', 'Cybersecurity', 'Cloud', 'Soft Skills', 'Database', 'Mobile']
+const CATEGORIES = ['General', 'Programming', 'Web Development', 'Data Science', 'Design', 'AI & ML', 'Cybersecurity', 'Database']
 const PRESET_COURSES = [
-  { name: 'Python', category: 'Programming', icon: '🐍' },
-  { name: 'Java', category: 'Programming', icon: '☕' },
-  { name: 'C Programming', category: 'Programming', icon: '⚙️' },
+  { name: 'C', category: 'Programming', icon: '⚙️' },
   { name: 'C++', category: 'Programming', icon: '🔧' },
+  { name: 'Java', category: 'Programming', icon: '☕' },
+  { name: 'Python', category: 'Programming', icon: '🐍' },
   { name: 'JavaScript', category: 'Web Development', icon: '🟡' },
   { name: 'React', category: 'Web Development', icon: '⚛️' },
-  { name: 'Node.js', category: 'Web Development', icon: '🟢' },
-  { name: 'MongoDB', category: 'Database', icon: '🍃' },
   { name: 'SQL', category: 'Database', icon: '🗄️' },
-  { name: 'Machine Learning', category: 'AI & ML', icon: '🤖' },
-  { name: 'Artificial Intelligence', category: 'AI & ML', icon: '🧠' },
-  { name: 'Data Science', category: 'Data Science', icon: '📊' },
-  { name: 'Power BI', category: 'Data Science', icon: '📈' },
-  { name: 'Excel', category: 'General', icon: '📋' },
-  { name: 'UI/UX Design', category: 'Design', icon: '🎨' },
-  { name: 'Figma', category: 'Design', icon: '🎯' },
-  { name: 'Cyber Security', category: 'Cybersecurity', icon: '🔒' },
-  { name: 'Cloud Computing', category: 'Cloud', icon: '☁️' },
-  { name: 'Communication Skills', category: 'Soft Skills', icon: '🗣️' },
 ]
 
-const empty = { name: '', description: '', category: 'General', icon: '' }
+const emptyForm = {
+  name: '',
+  description: '',
+  category: 'Programming',
+  icon: '📘',
+  youtubeUrl: '',
+  questionBankTitle: '',
+  questionBankUrl: '',
+  questionBankContent: ''
+}
+
+function getYouTubeEmbedUrl(url: string): string | null {
+  if (!url) return null
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+  return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : null
+}
 
 export default function AdminCourses() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editCourse, setEditCourse] = useState<Course | null>(null)
-  const [form, setForm] = useState(empty)
+  const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedCat, setSelectedCat] = useState('All')
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [selectedQbCourse, setSelectedQbCourse] = useState<Course | null>(null)
+
+  const handleDownloadQb = (course: Course) => {
+    if (course.questionBankUrl) {
+      const a = document.createElement('a')
+      a.href = course.questionBankUrl
+      a.download = `${course.name.toLowerCase()}_question_bank.pdf`
+      a.target = '_blank'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } else if (course.questionBankContent) {
+      const blob = new Blob([course.questionBankContent], { type: 'text/plain;charset=utf-8' })
+      const downloadUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = downloadUrl
+      a.download = `${course.name.toLowerCase()}_questions.txt`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(downloadUrl)
+    }
+  }
+
+  const handleRemoveQb = async (course: Course) => {
+    if (!confirm(`Are you sure you want to remove the Question Bank from ${course.name}?`)) return
+    const id = course._id || course.id!
+    await adminCoursesApi.update(id, {
+      questionBankTitle: '',
+      questionBankUrl: '',
+      questionBankContent: ''
+    })
+    load()
+  }
 
   const load = async () => {
-    try { setCourses(await adminCoursesApi.getAll()) }
-    catch (e: any) { setError(e.message) }
-    finally { setLoading(false) }
+    setLoading(true)
+    try {
+      setCourses(await adminCoursesApi.getAll())
+    } catch (e: any) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
+
   useEffect(() => { load() }, [])
 
   const filtered = courses.filter(c => {
@@ -51,168 +97,367 @@ export default function AdminCourses() {
     return matchSearch && matchCat
   })
 
-  const openAdd = () => { setEditCourse(null); setForm(empty); setShowModal(true) }
-  const openEdit = (c: Course) => { setEditCourse(c); setForm({ name: c.name, description: c.description, category: c.category, icon: c.icon }); setShowModal(true) }
-  const closeModal = () => { setShowModal(false); setEditCourse(null); setForm(empty) }
+  const openAdd = () => { setEditCourse(null); setForm(emptyForm); setShowModal(true) }
+  const openEdit = (c: Course) => {
+    setEditCourse(c)
+    setForm({
+      name: c.name,
+      description: c.description || '',
+      category: c.category || 'Programming',
+      icon: c.icon || '📘',
+      youtubeUrl: c.youtubeUrl || '',
+      questionBankTitle: c.questionBankTitle || '',
+      questionBankUrl: c.questionBankUrl || '',
+      questionBankContent: c.questionBankContent || ''
+    })
+    setShowModal(true)
+  }
 
-  const handlePreset = (p: typeof PRESET_COURSES[0]) => { setForm(f => ({ ...f, name: p.name, category: p.category, icon: p.icon })) }
-
-  const handleSave = async () => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      if (editCourse) { await adminCoursesApi.update(editCourse.id, form) }
-      else { await adminCoursesApi.create(form) }
-      await load(); closeModal()
-    } catch (e: any) { alert(e.message) }
-    finally { setSaving(false) }
+      if (editCourse) {
+        await adminCoursesApi.update(editCourse._id || editCourse.id!, form)
+      } else {
+        await adminCoursesApi.create(form)
+      }
+      await load()
+      setShowModal(false)
+    } catch (e: any) {
+      alert(e.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
-    try { await adminCoursesApi.delete(id); setCourses(c => c.filter(x => x.id !== id)) }
-    catch (e: any) { alert(e.message) }
-    finally { setDeleteConfirm(null) }
+    if (!confirm('Are you sure you want to delete this course and its resources?')) return
+    try {
+      await adminCoursesApi.delete(id)
+      setCourses(c => c.filter(x => (x._id || x.id) !== id))
+    } catch (e: any) {
+      alert(e.message)
+    }
   }
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Course Directory</h1>
-          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '14px' }}>{courses.length} courses in the master database</p>
+    <AdminLayout title="Course Resources & Question Banks">
+      {/* Top Bar */}
+      <div className="admin-card p-4 rounded-2xl mb-6 flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-4 items-center flex-1">
+          <div className="admin-search-wrapper flex-1 min-w-[200px] max-w-[400px]">
+            <Search size={16} className="admin-search-icon" />
+            <input
+              type="text"
+              placeholder="Search courses..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="admin-input admin-search-input w-full"
+            />
+          </div>
+          <select
+            value={selectedCat}
+            onChange={e => setSelectedCat(e.target.value)}
+            className="admin-input py-2 bg-[#181b2e] text-slate-200 border border-white/10 rounded-xl"
+          >
+            <option value="All" className="bg-[#181b2e] text-slate-200">All Categories</option>
+            {CATEGORIES.map(c => <option key={c} value={c} className="bg-[#181b2e] text-slate-200">{c}</option>)}
+          </select>
         </div>
-        <button onClick={openAdd} style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          ➕ Add Course
+        <button
+          onClick={openAdd}
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center gap-2"
+        >
+          <Plus size={16} /> Add Course Resource
         </button>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <input
-          placeholder="🔍 Search courses..."
-          value={search} onChange={e => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: '200px', padding: '12px 16px', borderRadius: '10px', border: '1px solid #334155', background: '#1e293b', color: '#e2e8f0', fontSize: '14px', outline: 'none' }}
-        />
-        <select value={selectedCat} onChange={e => setSelectedCat(e.target.value)}
-          style={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid #334155', background: '#1e293b', color: '#e2e8f0', fontSize: '14px', outline: 'none' }}>
-          <option value="All">All Categories</option>
-          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-        </select>
       </div>
 
       {/* Grid */}
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '16px' }}>
-          {[...Array(8)].map((_, i) => <div key={i} style={{ height: '140px', borderRadius: '12px', background: 'linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
-        </div>
-      ) : error ? (
-        <div style={{ textAlign: 'center', padding: '48px', color: '#ef4444', background: '#1e293b', borderRadius: '12px', border: '1px solid #ef4444' }}>
-          <div style={{ fontSize: '32px' }}>⚠️</div>
-          <p>{error}</p>
-          <p style={{ fontSize: '13px', color: '#64748b' }}>Database not connected. Connect PostgreSQL to manage courses.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-64 rounded-2xl admin-skeleton" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '64px', background: '#1e293b', borderRadius: '12px', border: '1px dashed #334155' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📚</div>
-          <p style={{ color: '#94a3b8', fontSize: '16px' }}>No courses found. Add your first course!</p>
+        <div className="admin-card rounded-2xl p-12 text-center">
+          <Video size={40} className="mx-auto text-slate-600 mb-3" />
+          <p className="text-slate-300 font-semibold text-base">No Course Resources Found</p>
+          <p className="text-slate-500 text-sm mt-1">Add courses along with YouTube learning videos & Question Banks.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '16px' }}>
-          {filtered.map(course => (
-            <div key={course.id} style={{ background: 'linear-gradient(135deg,#1e293b,#0f172a)', border: '1px solid #334155', borderRadius: '14px', padding: '20px', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(99,102,241,0.2)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                  <span style={{ fontSize: '32px' }}>{course.icon || '📘'}</span>
-                  <div>
-                    <div style={{ fontWeight: 600, color: '#e2e8f0', fontSize: '15px' }}>{course.name}</div>
-                    <span style={{ display: 'inline-block', background: 'rgba(99,102,241,0.2)', color: '#818cf8', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', marginTop: '4px' }}>{course.category}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map(course => {
+            const courseId = course._id || course.id!
+            const embedUrl = getYouTubeEmbedUrl(course.youtubeUrl || '')
+
+            return (
+              <div key={courseId} className="admin-card rounded-2xl overflow-hidden flex flex-col justify-between border border-white/5 hover:border-indigo-500/30 transition-all">
+                <div>
+                  {/* Video Embed or Thumbnail Header */}
+                  {embedUrl ? (
+                    <div className="relative aspect-video w-full bg-black">
+                      <iframe
+                        src={embedUrl}
+                        title={course.name}
+                        className="w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-28 bg-gradient-to-r from-indigo-900/40 to-slate-900 flex items-center justify-center p-4 border-b border-white/5">
+                      <div className="flex items-center gap-3">
+                        <span className="text-4xl">{course.icon || '📘'}</span>
+                        <div>
+                          <h3 className="text-lg font-bold text-white">{course.name}</h3>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/20 text-indigo-400">
+                            {course.category}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-5">
+                    {embedUrl && (
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-base font-bold text-white flex items-center gap-2">
+                          <span>{course.icon || '📘'}</span>
+                          <span>{course.name}</span>
+                        </h3>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/20 text-indigo-400">
+                          {course.category}
+                        </span>
+                      </div>
+                    )}
+
+                    {course.description && (
+                      <p className="text-xs text-slate-400 mb-4 line-clamp-2 leading-relaxed">{course.description}</p>
+                    )}
+
+                    {/* Resources Badges & Actions */}
+                    <div className="space-y-2.5">
+                      {/* YouTube Video Link */}
+                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs">
+                          <Video size={15} className="text-red-400" />
+                          <span className="font-semibold text-slate-300">Learning Video</span>
+                        </div>
+                        {course.youtubeUrl ? (
+                          <a href={course.youtubeUrl} target="_blank" rel="noreferrer" className="px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold flex items-center gap-1 transition-colors">
+                            Watch <ExternalLink size={12} />
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-slate-600">Not Added</span>
+                        )}
+                      </div>
+
+                      {/* Question Bank */}
+                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-xs">
+                            <FileText size={15} className="text-emerald-400" />
+                            <span className="font-semibold text-slate-300 truncate max-w-[160px]">
+                              {course.questionBankTitle || 'Question Bank'}
+                            </span>
+                          </div>
+                          {course.questionBankUrl || course.questionBankContent ? (
+                            <span className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10 uppercase">
+                              Ready
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-slate-600">Not Added</span>
+                          )}
+                        </div>
+
+                        {(course.questionBankUrl || course.questionBankContent) && (
+                          <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                            <button
+                              onClick={() => setSelectedQbCourse(course)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-medium flex items-center gap-1 transition-colors flex-1 justify-center"
+                            >
+                              <FileText size={12} /> View / Open
+                            </button>
+                            <button
+                              onClick={() => handleDownloadQb(course)}
+                              className="px-2.5 py-1 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 text-xs font-medium flex items-center gap-1 transition-colors"
+                              title="Download Question Bank"
+                            >
+                              <Download size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleRemoveQb(course)}
+                              className="p-1 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs"
+                              title="Remove Question Bank"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => openEdit(course)} style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8', border: 'none', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', fontSize: '13px' }}>✏️</button>
-                  <button onClick={() => setDeleteConfirm(course.id)} style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', border: 'none', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', fontSize: '13px' }}>🗑️</button>
+
+                {/* Actions */}
+                <div className="px-5 py-3 border-t border-white/5 bg-slate-900/30 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => openEdit(course)}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-indigo-500/20 hover:text-indigo-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Edit2 size={13} /> Manage Resources
+                  </button>
+                  <button
+                    onClick={() => handleDelete(courseId)}
+                    className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
+                    title="Delete Course"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
-              {course.description && <p style={{ color: '#64748b', fontSize: '13px', marginTop: '12px', marginBottom: 0, lineHeight: 1.5 }}>{course.description}</p>}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
-      {/* Add/Edit Modal */}
-      {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
-          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{ margin: 0, color: '#e2e8f0', fontSize: '20px' }}>{editCourse ? 'Edit Course' : 'Add Course'}</h2>
-              <button onClick={closeModal} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '20px' }}>✕</button>
-            </div>
+      {/* Add / Edit Modal */}
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto py-12">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="admin-card w-full max-w-xl rounded-2xl p-6 shadow-2xl border border-indigo-500/20 my-auto"
+            >
+              <h2 className="text-xl font-bold text-white mb-4">
+                {editCourse ? `Edit ${editCourse.name} Resources` : 'Add Course Learning Resources'}
+              </h2>
 
-            {/* Quick Presets */}
-            {!editCourse && (
-              <div style={{ marginBottom: '20px' }}>
-                <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Quick Add Presets</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {PRESET_COURSES.map(p => (
-                    <button key={p.name} onClick={() => handlePreset(p)}
-                      style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}>
-                      {p.icon} {p.name}
-                    </button>
-                  ))}
+              <form onSubmit={handleSave} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Course Name *</label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={e => setForm({ ...form, name: e.target.value })}
+                      className="admin-input"
+                      placeholder="e.g. C, C++, Java, Python"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Category</label>
+                    <select
+                      value={form.category}
+                      onChange={e => setForm({ ...form, category: e.target.value })}
+                      className="admin-input bg-[#181b2e] text-slate-200"
+                    >
+                      {CATEGORIES.map(c => <option key={c} value={c} className="bg-[#181b2e] text-slate-200">{c}</option>)}
+                    </select>
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {/* Form Fields */}
-            {[
-              { label: 'Course Name *', key: 'name', placeholder: 'e.g. Python' },
-              { label: 'Icon (Emoji)', key: 'icon', placeholder: 'e.g. 🐍' },
-              { label: 'Description', key: 'description', placeholder: 'Short description...' },
-            ].map(f => (
-              <div key={f.key} style={{ marginBottom: '16px' }}>
-                <label style={{ color: '#94a3b8', fontSize: '13px', display: 'block', marginBottom: '6px' }}>{f.label}</label>
-                <input value={(form as any)[f.key]} onChange={e => setForm(x => ({ ...x, [f.key]: e.target.value }))}
-                  placeholder={f.placeholder}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-            ))}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Description</label>
+                  <textarea
+                    value={form.description}
+                    onChange={e => setForm({ ...form, description: e.target.value })}
+                    className="admin-input h-20 resize-none"
+                    placeholder="Short summary of what students will learn..."
+                  />
+                </div>
 
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ color: '#94a3b8', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Category</label>
-              <select value={form.category} onChange={e => setForm(x => ({ ...x, category: e.target.value }))}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: '14px', outline: 'none' }}>
-                {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
+                <div className="pt-2 border-t border-white/5">
+                  <h3 className="text-sm font-bold text-indigo-400 mb-3 flex items-center gap-1.5">
+                    <Video size={16} /> <span>YouTube Learning Video</span>
+                  </h3>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">YouTube Video URL</label>
+                    <input
+                      type="url"
+                      value={form.youtubeUrl}
+                      onChange={e => setForm({ ...form, youtubeUrl: e.target.value })}
+                      className="admin-input"
+                      placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                    />
+                  </div>
+                </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button onClick={closeModal} style={{ background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: '8px', padding: '10px 20px', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-              <button onClick={handleSave} disabled={saving || !form.name.trim()}
-                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 24px', cursor: 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
-                {saving ? 'Saving...' : editCourse ? 'Update Course' : 'Add Course'}
-              </button>
-            </div>
+                <div className="pt-2 border-t border-white/5">
+                  <h3 className="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-1.5">
+                    <FileText size={16} /> <span>Question Bank</span>
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Question Bank Title</label>
+                      <input
+                        type="text"
+                        value={form.questionBankTitle}
+                        onChange={e => setForm({ ...form, questionBankTitle: e.target.value })}
+                        className="admin-input"
+                        placeholder="e.g. C Programming Question Bank PDF"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">PDF / Document File URL</label>
+                      <input
+                        type="url"
+                        value={form.questionBankUrl}
+                        onChange={e => setForm({ ...form, questionBankUrl: e.target.value })}
+                        className="admin-input"
+                        placeholder="e.g. https://example.com/c_question_bank.pdf"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Questions / Notes Content</label>
+                      <textarea
+                        value={form.questionBankContent}
+                        onChange={e => setForm({ ...form, questionBankContent: e.target.value })}
+                        className="admin-input h-24 resize-none"
+                        placeholder="Type or paste sample questions / key exam questions here..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-5 py-2 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
+                  >
+                    {saving ? 'Saving...' : editCourse ? 'Update Course Resources' : 'Save Course Resources'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {/* Delete Confirm */}
-      {deleteConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, backdropFilter: 'blur(8px)' }}>
-          <div style={{ background: '#1e293b', border: '1px solid #ef4444', borderRadius: '16px', padding: '32px', width: '400px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗑️</div>
-            <h3 style={{ color: '#e2e8f0', marginBottom: '8px' }}>Delete Course?</h3>
-            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>This action cannot be undone.</p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ background: '#334155', color: '#e2e8f0', border: 'none', borderRadius: '8px', padding: '10px 24px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={() => handleDelete(deleteConfirm)} style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 24px', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
-            </div>
-          </div>
-        </div>
+      {/* Question Bank Modal */}
+      {selectedQbCourse && (
+        <QuestionBankModal
+          isOpen={!!selectedQbCourse}
+          onClose={() => setSelectedQbCourse(null)}
+          courseName={selectedQbCourse.name}
+          title={selectedQbCourse.questionBankTitle}
+          url={selectedQbCourse.questionBankUrl}
+          content={selectedQbCourse.questionBankContent}
+        />
       )}
-    </div>
+    </AdminLayout>
   )
 }
+

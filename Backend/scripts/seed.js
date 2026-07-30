@@ -1,4 +1,5 @@
 require('dotenv').config()
+require('dns').setServers(['8.8.8.8', '1.1.1.1'])
 const mongoose = require('mongoose')
 const bcrypt = require('bcryptjs')
 const Admin = require('../models/Admin')
@@ -144,17 +145,16 @@ async function runSeed() {
     })
 
     for (const skillName of uniqueSkills) {
-      const existing = await Skill.findOne({ name: { $regex: new RegExp(`^${skillName}$`, 'i') } })
+      const escapedName = skillName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const existing = await Skill.findOne({ name: { $regex: new RegExp(`^${escapedName}$`, 'i') } })
       if (!existing) {
         await new Skill({ name: skillName }).save()
       }
     }
     console.log(`✅ Populated global skills database with ${uniqueSkills.size} unique skills`)
-
+    } else {
+      console.log(`ℹ️  ${existingCount} students already exist — skipping student seed`)
     }
-  } else {
-    console.log(`ℹ️  ${existingCount} students already exist — skipping student seed`)
-  }
   }
 
   console.log('\n🚀 Seed complete!\n')

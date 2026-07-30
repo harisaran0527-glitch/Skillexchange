@@ -5,16 +5,31 @@
 @tailwind utilities;
 
 /* ── Base ─────────────────────────────────────────── */
+html {
+  color-scheme: dark !important;
+  background-color: #0b0f19 !important;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
   }
   body {
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    @apply text-slate-800 dark:text-slate-100 antialiased;
+    background-color: #0b0f19 !important;
+    color: #f8fafc !important;
+    color-scheme: dark !important;
+    @apply text-slate-100 antialiased;
   }
-  textarea {
+  textarea, input, select, option, dialog {
     font-family: inherit;
+    color-scheme: dark !important;
+    background-color: #0b0f19 !important;
+    color: #ffffff !important;
+  }
+  option {
+    background-color: #0b0f19 !important;
+    color: #ffffff !important;
   }
 }
 
@@ -125,6 +140,28 @@
   border-color: rgba(99, 102, 241, 0.5);
   background: rgba(255, 255, 255, 0.05);
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+/* ── Admin Search Input Positioning ──────────────── */
+.admin-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-search-icon {
+  position: absolute;
+  left: 0.875rem; /* 14px */
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.admin-search-input {
+  padding-left: 2.75rem !important; /* 44px left padding so icon and placeholder text never overlap */
 }
 
 .admin-skeleton {

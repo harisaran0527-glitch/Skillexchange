@@ -1,61 +1,25 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import MainLayout from '../layouts/main/MainLayout'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { usersApi } from '../services/api'
-import { User, Book, Building, Camera } from 'lucide-react'
-
-// ── Department → Section mapping ────────────────────────
-const DEPARTMENT_SECTIONS: Record<string, string[]> = {
-  'AI&DS': ['A', 'B', 'C'],
-  'CSE':   ['A', 'B', 'C'],
-  'AIML':  ['A', 'B'],
-  'IT':    ['A', 'B'],
-  'EEE':   ['A'],
-  'BME':   ['A'],
-  'CIVIL': ['A'],
-  'MECH': ['A'],
-}
-const DEPARTMENTS = Object.keys(DEPARTMENT_SECTIONS)
-const YEARS = ['First Year', 'Second Year', 'Third Year', 'Fourth Year']
+import { User, Book, Building, Lock } from 'lucide-react'
 
 export default function Settings() {
   const { user, refreshUser } = useAuth()
-  const [form, setForm] = useState({
-    name: '', department: '', section: '', year: '', college: '', profileImage: ''
-  })
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [error, setError] = useState('')
 
-  // Skills & Courses management
-  const [skillInput, setSkillInput] = useState('')
-  const [skillsOffered, setSkillsOffered] = useState<string[]>([])
+  // Completed Courses management only
   const [completedCourses, setCompletedCourses] = useState<string[]>([])
-  
-  // Note: Since API doesn't yet have dedicated endpoints for completedCourses and certificates
-  // we will just manage skillsOffered via the existing addSkill/removeSkill endpoints,
-  // and manage completedCourses via updateProfile payload.
   const [courseInput, setCourseInput] = useState('')
 
   useEffect(() => {
     if (user) {
-      setForm({
-        name: user.name || '',
-        department: user.department || '',
-        section: user.section || '',
-        year: user.year || '',
-        college: user.college || '',
-        profileImage: user.profileImage || '',
-      })
-      setSkillsOffered(user.skillsOffered || [])
       setCompletedCourses(user.completedCourses || [])
     }
   }, [user])
-
-  const availableSections = useMemo(() => {
-    return form.department ? (DEPARTMENT_SECTIONS[form.department] || []) : []
-  }, [form.department])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -64,43 +28,15 @@ export default function Settings() {
     setSavedMsg('')
     try {
       await usersApi.updateProfile({
-        ...form,
         completedCourses
       })
       await refreshUser()
-      setSavedMsg('Profile saved successfully!')
+      setSavedMsg('Course selections saved successfully!')
       setTimeout(() => setSavedMsg(''), 3000)
     } catch (err: any) {
       setError(err.message || 'Failed to save profile')
     } finally {
       setSaving(false)
-    }
-  }
-
-  async function addSkill() {
-    const skill = skillInput.trim()
-    if (!skill) return
-    try {
-      const resp = await usersApi.addSkill('offered', skill)
-      setSkillsOffered(resp.user.skillsOffered || [])
-      setSkillInput('')
-      await refreshUser()
-      setSavedMsg('Skill added successfully!')
-      setTimeout(() => setSavedMsg(''), 3000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to add skill')
-    }
-  }
-
-  async function removeSkill(skill: string) {
-    try {
-      const resp = await usersApi.removeSkill('offered', skill)
-      setSkillsOffered(resp.user.skillsOffered || [])
-      await refreshUser()
-      setSavedMsg('Skill removed successfully!')
-      setTimeout(() => setSavedMsg(''), 3000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to remove skill')
     }
   }
 
@@ -121,7 +57,14 @@ export default function Settings() {
     <MainLayout>
       <div className="max-w-4xl mx-auto py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Edit Profile</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              Student Profile & Course Selection
+            </h1>
+            <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5">
+              <Lock size={13} /> Admin Managed Profile
+            </span>
+          </div>
 
           {savedMsg && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-medium">
@@ -134,136 +77,85 @@ export default function Settings() {
             </motion.div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
             
-            {/* Left Column: Basic Info */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-slate-900/60 border border-slate-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-xl">
-                <h2 className="font-bold text-lg text-white mb-6 flex items-center gap-2">
-                  <User size={18} className="text-indigo-400" /> Basic Information
+            {/* Basic Information (Read-Only) */}
+            <div className="bg-slate-900/60 border border-slate-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-bold text-lg text-white flex items-center gap-2">
+                  <User size={18} className="text-indigo-400" /> Personal Information
                 </h2>
-                
-                <form id="profileForm" onSubmit={handleSave} className="space-y-5">
-                  {/* Name & Profile Image */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-400 mb-2 block">Full Name</label>
-                      <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all" placeholder="Your name" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5"><Camera size={14}/> Profile Image URL</label>
-                      <input value={form.profileImage} onChange={e => setForm(p => ({ ...p, profileImage: e.target.value }))}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all" placeholder="https://..." />
-                    </div>
-                  </div>
-
-                  {/* Demographics */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-400 mb-2 block">Department</label>
-                      <select value={form.department} onChange={e => setForm(p => ({ ...p, department: e.target.value, section: '' }))}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer">
-                        <option value="" className="bg-slate-900">Select...</option>
-                        {DEPARTMENTS.map(d => <option key={d} value={d} className="bg-slate-900">{d}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-400 mb-2 block">Section</label>
-                      <select value={form.section} onChange={e => setForm(p => ({ ...p, section: e.target.value }))} disabled={!form.department}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed">
-                        <option value="" className="bg-slate-900">Select...</option>
-                        {availableSections.map(s => <option key={s} value={s} className="bg-slate-900">{s}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-400 mb-2 block">Year</label>
-                      <select value={form.year} onChange={e => setForm(p => ({ ...p, year: e.target.value }))}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer">
-                        <option value="" className="bg-slate-900">Select...</option>
-                        {YEARS.map(y => <option key={y} value={y} className="bg-slate-900">{y}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  {/* College */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5"><Building size={14}/> College</label>
-                    <input value={form.college} onChange={e => setForm(p => ({ ...p, college: e.target.value }))}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all" placeholder="Your college" />
-                  </div>
-                </form>
+                <span className="text-xs text-slate-500 italic">Editable only by Admin</span>
               </div>
+              
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 mb-2 block">Full Name</label>
+                    <input value={user?.name || ''} readOnly disabled className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 cursor-not-allowed opacity-80" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 mb-2 block">Student Email</label>
+                    <input value={user?.email || ''} readOnly disabled className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 cursor-not-allowed opacity-80" />
+                  </div>
+                </div>
 
-              {/* Completed Courses Management */}
-              <div className="bg-slate-900/60 border border-slate-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-xl">
-                <h2 className="font-bold text-lg text-white mb-6 flex items-center gap-2">
-                  <Book size={18} className="text-emerald-400" /> Completed Courses
-                </h2>
-                <div className="flex gap-2 mb-4">
-                  <input
-                    value={courseInput}
-                    onChange={e => setCourseInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCourse())}
-                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                    placeholder="e.g. Advanced Data Structures"
-                  />
-                  <button onClick={handleAddCourse} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all">Add</button>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 mb-2 block">Department</label>
+                    <input value={user?.department || '—'} readOnly disabled className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 cursor-not-allowed opacity-80" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 mb-2 block">Section</label>
+                    <input value={user?.section ? `Section ${user.section}` : '—'} readOnly disabled className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 cursor-not-allowed opacity-80" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 mb-2 block">Year</label>
+                    <input value={user?.year ? `Year ${user.year}` : '—'} readOnly disabled className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 cursor-not-allowed opacity-80" />
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {completedCourses.map(c => (
-                    <span key={c} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-semibold rounded-lg border border-emerald-500/20 flex items-center gap-2">
-                      {c}
-                      <button onClick={() => handleRemoveCourse(c)} className="text-emerald-400/50 hover:text-emerald-400 text-lg leading-none">&times;</button>
-                    </span>
-                  ))}
-                  {completedCourses.length === 0 && <span className="text-slate-500 text-sm">No courses added yet.</span>}
+                
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5"><Building size={14}/> College Name</label>
+                  <input value={user?.college || 'AVS ENGINEERING COLLEGE'} readOnly disabled className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 cursor-not-allowed opacity-80" />
                 </div>
-                <p className="text-xs text-slate-500 mt-4 italic">* Course updates will be saved when you click "Save All Changes" below.</p>
               </div>
             </div>
 
-            {/* Right Column: Skills */}
-            <div className="space-y-6">
-              <div className="bg-slate-900/60 border border-slate-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-xl h-full flex flex-col">
-                <h2 className="font-bold text-lg text-white mb-6 flex items-center gap-2">
-                  <span className="text-indigo-400 font-serif italic text-xl">S</span> Skills Offered
-                </h2>
-                
-                <div className="flex gap-2 mb-6">
-                  <input
-                    value={skillInput}
-                    onChange={e => setSkillInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
-                    placeholder="e.g. React, Python..."
-                  />
-                  <button onClick={addSkill} className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all text-sm">Add</button>
-                </div>
+            {/* Completed Courses Management (Student Editable) */}
+            <div className="bg-slate-900/60 border border-slate-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-xl">
+              <h2 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
+                <Book size={18} className="text-emerald-400" /> Course / Skill Selection
+              </h2>
+              <p className="text-xs text-slate-400 mb-6">Select or add courses you are currently enrolled in or have completed.</p>
+              
+              <div className="flex gap-2 mb-4">
+                <input
+                  value={courseInput}
+                  onChange={e => setCourseInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCourse())}
+                  className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
+                  placeholder="e.g. C++, Java, Python, React"
+                />
+                <button type="button" onClick={handleAddCourse} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all text-sm">Add Course</button>
+              </div>
 
-                <div className="flex-1">
-                  {skillsOffered.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-center py-10">No skills added yet.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {skillsOffered.map(s => (
-                        <span key={s} className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 text-sm font-semibold rounded-lg border border-indigo-500/20 flex items-center gap-2">
-                          {s}
-                          <button onClick={() => removeSkill(s)} className="text-indigo-400/50 hover:text-indigo-400 text-lg leading-none">&times;</button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-slate-500 mt-4 italic">* Skills are saved instantly.</p>
+              <div className="flex flex-wrap gap-2">
+                {completedCourses.map(c => (
+                  <span key={c} className="px-3.5 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-semibold rounded-lg border border-emerald-500/20 flex items-center gap-2">
+                    {c}
+                    <button type="button" onClick={() => handleRemoveCourse(c)} className="text-emerald-400/50 hover:text-emerald-400 text-lg leading-none">&times;</button>
+                  </span>
+                ))}
+                {completedCourses.length === 0 && <span className="text-slate-500 text-sm italic">No courses selected yet.</span>}
               </div>
             </div>
 
           </div>
 
           <div className="flex justify-end pt-4">
-            <button type="submit" form="profileForm" disabled={saving} className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all text-lg disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save All Changes'}
+            <button type="button" onClick={handleSave} disabled={saving} className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all text-lg disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Course Selection'}
             </button>
           </div>
         </motion.div>

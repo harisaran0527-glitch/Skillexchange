@@ -67,19 +67,20 @@ export default function AdminRequests() {
     {
       key: 'status', label: 'Status',
       render: (r: LearningRequest) => {
-        const colors: any = { pending: 'bg-amber-500/10 text-amber-400', approved: 'bg-emerald-500/10 text-emerald-400', rejected: 'bg-rose-500/10 text-rose-400' }
-        return <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${colors[r.status]}`}>{r.status}</span>
+        const s = (r.status || 'PENDING').toUpperCase()
+        const colors: any = { PENDING: 'bg-amber-500/10 text-amber-400 border border-amber-500/20', APPROVED: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', REJECTED: 'bg-rose-500/10 text-rose-400 border border-rose-500/20' }
+        return <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider ${colors[s] || colors.PENDING}`}>{s}</span>
       }
     },
     {
-      key: 'createdAt', label: 'Date',
+      key: 'createdAt', label: 'Created Date',
       render: (r: LearningRequest) => <span className="text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString()}</span>
     },
     {
       key: 'actions', label: 'Actions',
       render: (r: LearningRequest) => (
         <div className="flex items-center gap-2">
-          {r.status === 'pending' && (
+          {((r.status || '').toUpperCase() === 'PENDING') && (
             <>
               <button onClick={() => handleAction(r._id, 'approve')} className="p-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-400 transition-colors" title="Approve">
                 <Check size={14} />
@@ -98,15 +99,15 @@ export default function AdminRequests() {
   ]
 
   return (
-    <AdminLayout title="Learning Requests">
+    <AdminLayout title="Teaching Requests System">
       <div className="admin-card p-4 rounded-2xl mb-6 flex items-center gap-4">
         <div className="flex items-center gap-2">
           <Filter size={16} className="text-slate-500" />
-          <select value={status} onChange={e => { setStatus(e.target.value); setPage(1) }} className="admin-input py-2">
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
+          <select value={status} onChange={e => { setStatus(e.target.value); setPage(1) }} className="admin-input py-2 bg-[#181b2e] text-slate-200 border border-white/10 rounded-xl">
+            <option value="" className="bg-[#181b2e] text-slate-200">All Request Statuses</option>
+            <option value="PENDING" className="bg-[#181b2e] text-slate-200">PENDING</option>
+            <option value="APPROVED" className="bg-[#181b2e] text-slate-200">APPROVED</option>
+            <option value="REJECTED" className="bg-[#181b2e] text-slate-200">REJECTED</option>
           </select>
         </div>
       </div>

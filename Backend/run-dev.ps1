@@ -19,7 +19,7 @@ Write-Host "Installing dependencies..."
 npm install
 
 # Start the dev server in a new window so this script can continue to open browser
-$port = $env:PORT -or 5000
+$port = $env:PORT -or 5005
 Write-Host "Starting dev server (npm run dev) in new window..."
 Start-Process -FilePath "powershell" -ArgumentList "-NoExit -Command `"cd '$scriptDir' ; npm run dev`""
 

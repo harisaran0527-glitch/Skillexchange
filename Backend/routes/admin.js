@@ -21,6 +21,7 @@ router.put('/students/:id', c.updateStudent)
 router.delete('/students/:id', c.deleteStudent)
 router.put('/students/:id/suspend', c.suspendStudent)
 router.put('/students/:id/activate', c.activateStudent)
+router.put('/students/:id/rate-course', c.rateStudentCourse)
 
 // Course Directory management
 router.get('/courses', c.getCourses)
@@ -30,6 +31,7 @@ router.delete('/courses/:id', c.deleteCourse)
 
 // Skill management
 router.get('/skills', c.getAllSkills)
+router.post('/skills', c.createSkill)
 router.put('/skills/rename', c.editSkill)
 router.delete('/skills/:name', c.deleteSkill)
 

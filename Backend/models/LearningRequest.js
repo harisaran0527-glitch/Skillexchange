@@ -8,7 +8,7 @@ const learningRequestSchema = new mongoose.Schema({
   courseName: { type: String, required: true },
   department: { type: String },
   section: { type: String },
-  status: { type: String, default: 'Pending', enum: ['Pending', 'Accepted', 'Rejected'] },
+  status: { type: String, default: 'PENDING', enum: ['PENDING', 'APPROVED', 'REJECTED', 'Pending', 'Accepted', 'Approved', 'Rejected'] },
   requestDate: { type: String },
   requestTime: { type: String },
   message: { type: String }

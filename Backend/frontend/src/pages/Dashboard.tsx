@@ -3,182 +3,119 @@ import { Link } from 'react-router-dom'
 import MainLayout from '../layouts/main/MainLayout'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
-import { usersApi, matchApi, AuthUser, MatchResult } from '../services/api'
+import { usersApi } from '../services/api'
+import { GraduationCap, BookOpen, Users, Award } from 'lucide-react'
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const [matches, setMatches] = useState<MatchResult[]>([])
-  const [loadingMatches, setLoadingMatches] = useState(true)
   const [stats, setStats] = useState<any>(null)
 
   useEffect(() => {
     usersApi.getPublicStats().then(setStats).catch(() => {})
-    matchApi.getMatches()
-      .then(data => setMatches(data.slice(0, 6)))
-      .catch(() => setMatches([]))
-      .finally(() => setLoadingMatches(false))
   }, [])
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Welcome header */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-6 rounded-2xl"
+          className="bg-slate-900/60 p-8 rounded-3xl border border-blue-500/20 shadow-2xl backdrop-blur-xl relative overflow-hidden"
         >
-          <h1 className="text-2xl font-bold">
-            Welcome back, <span className="text-indigo-600">{user?.name || 'Student'}</span> 👋
-          </h1>
-          <p className="text-slate-500 mt-1">
-            {user?.department && `${user.department}`}
-            {user?.section && ` - ${user.section}`}
-            {user?.year && ` • ${user.year}`}
-            {user?.college && ` • ${user.college}`}
-            {!user?.department && !user?.college && 'SkillSwap Platform'}
-          </p>
-          <div className="mt-4 flex gap-3">
-            <Link to="/discovery" className="btn-primary text-sm">Discover Students</Link>
-            <Link to="/settings" className="btn-secondary text-sm">Edit Profile</Link>
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-3xl font-extrabold text-white">
+                Welcome back, <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">{user?.name || 'Student'}</span>
+              </h1>
+              <p className="text-slate-400 text-sm mt-2 flex flex-wrap items-center gap-2">
+                {user?.department && <span className="px-2.5 py-1 bg-slate-800/80 rounded-lg text-slate-300 font-medium">{user.department}</span>}
+                {user?.section && <span className="px-2.5 py-1 bg-slate-800/80 rounded-lg text-slate-300 font-medium">Section {user.section}</span>}
+                {user?.year && <span className="px-2.5 py-1 bg-slate-800/80 rounded-lg text-slate-300 font-medium">Year {user.year}</span>}
+                {user?.college && <span className="px-2.5 py-1 bg-slate-800/80 rounded-lg text-slate-300 font-medium">{user.college}</span>}
+                {!user?.department && !user?.college && 'SkillExchange Student Portal'}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link to="/best-students" className="px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold rounded-2xl text-sm transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2 active:scale-98">
+                <Award size={18} /> Best Students
+              </Link>
+              <Link to="/settings" className="px-5 py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-bold rounded-2xl text-sm transition-all border border-white/10 hover:border-blue-500/30">
+                View Profile
+              </Link>
+            </div>
           </div>
         </motion.div>
 
-        {/* Global Statistics */}
+        {/* Global Statistics — ONLY Total Students & Total Skills */}
         {stats && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="grid grid-cols-2 md:grid-cols-5 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
           >
-            <div className="glass-card p-4 rounded-2xl text-center">
-              <div className="text-2xl font-bold text-indigo-400">{stats.totalStudents}</div>
-              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Total Students</div>
+            <div className="bg-slate-900/60 p-7 rounded-3xl flex items-center gap-5 border border-blue-500/20 shadow-xl backdrop-blur-xl hover:border-blue-500/40 transition-all group">
+              <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-2xl group-hover:scale-105 transition-transform">
+                <Users size={30} />
+              </div>
+              <div>
+                <div className="text-4xl font-black text-white">{stats.totalStudents || 0}</div>
+                <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Total Registered Students</div>
+              </div>
             </div>
-            <div className="glass-card p-4 rounded-2xl text-center">
-              <div className="text-2xl font-bold text-emerald-400">{stats.totalSkills}</div>
-              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Total Skills</div>
-            </div>
-            <div className="glass-card p-4 rounded-2xl text-center">
-              <div className="text-2xl font-bold text-amber-400">{stats.activeRequests}</div>
-              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Active Requests</div>
-            </div>
-            <div className="glass-card p-4 rounded-2xl text-center">
-              <div className="text-2xl font-bold text-teal-400">{stats.completedExchanges}</div>
-              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Exchanges Done</div>
-            </div>
-            <div className="glass-card p-4 rounded-2xl text-center md:col-span-1 col-span-2">
-              <div className="text-2xl font-bold text-purple-400">{stats.totalMessages}</div>
-              <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">Total Messages</div>
+
+            <div className="bg-slate-900/60 p-7 rounded-3xl flex items-center gap-5 border border-purple-500/20 shadow-xl backdrop-blur-xl hover:border-purple-500/40 transition-all group">
+              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-2xl group-hover:scale-105 transition-transform">
+                <BookOpen size={30} />
+              </div>
+              <div>
+                <div className="text-4xl font-black text-white">{stats.totalSkills || 0}</div>
+                <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Master Courses & Skills</div>
+              </div>
             </div>
           </motion.div>
         )}
 
-        {/* Skills summary */}
+        {/* Completed Courses Summary */}
         {user && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            className="bg-slate-900/60 p-8 rounded-3xl border border-white/10 shadow-xl backdrop-blur-xl"
           >
-            <div className="glass-card p-5 rounded-2xl">
-              <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wide mb-3">Skills I Offer</h3>
-              {user.skillsOffered && user.skillsOffered.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {user.skillsOffered.map(s => (
-                    <span key={s} className="skill-tag-offered">{s}</span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400">
-                  No skills added yet.{' '}
-                  <Link to="/settings" className="text-indigo-600 hover:underline">Add skills →</Link>
-                </p>
-              )}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-lg text-white flex items-center gap-2.5">
+                <GraduationCap size={22} className="text-blue-400" />
+                <span>My Enrolled & Completed Courses</span>
+              </h3>
+              <Link to="/search" className="text-xs text-blue-400 hover:text-blue-300 hover:underline font-bold transition-colors">
+                Explore All Courses & Resources →
+              </Link>
             </div>
-            <div className="glass-card p-5 rounded-2xl">
-              <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wide mb-3">Completed Courses</h3>
-              {user.completedCourses && user.completedCourses.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {user.completedCourses.map(c => (
-                    <span key={c} className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-medium rounded-lg border border-emerald-500/20">{c}</span>
-                  ))}
-                </div>
-              ) : (
+
+            {user.completedCourses && user.completedCourses.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {user.completedCourses.map(c => (
+                  <span key={c} className="px-4 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 text-blue-300 text-sm font-semibold rounded-2xl border border-blue-500/20 shadow-sm flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    {c}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 rounded-2xl bg-slate-950/40 border border-slate-800 text-center">
                 <p className="text-sm text-slate-400">
-                  No courses completed yet.{' '}
-                  <Link to="/settings" className="text-indigo-600 hover:underline">Add courses →</Link>
+                  No courses selected yet.{' '}
+                  <Link to="/settings" className="text-blue-400 font-bold hover:underline">Select Courses in Profile Settings →</Link>
                 </p>
-              )}
-            </div>
+              </div>
+            )}
           </motion.div>
         )}
-
-        {/* Recommended matches */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">Recommended Matches</h2>
-            <Link to="/matches" className="text-sm text-indigo-600 hover:underline">See all →</Link>
-          </div>
-
-          {loadingMatches ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="glass-card p-5 rounded-2xl animate-pulse h-32" />
-              ))}
-            </div>
-          ) : matches.length === 0 ? (
-            <div className="glass-card p-8 rounded-2xl text-center text-slate-500">
-              <p>No matches yet. Add your skills in <Link to="/settings" className="text-indigo-600 hover:underline">Settings</Link> to find matches!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {matches.map((m, i) => (
-                <motion.div
-                  key={m.user.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * i }}
-                  className="glass-card p-5 rounded-2xl hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                      {m.user.name?.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">{m.user.name}</div>
-                      <div className="text-xs text-slate-500">{m.user.department}</div>
-                    </div>
-                    <div className="ml-auto">
-                      <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">
-                        {m.matchPercentage}%
-                      </span>
-                    </div>
-                  </div>
-                  {m.commonSkills && m.commonSkills.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {m.commonSkills.slice(0, 3).map(s => (
-                        <span key={s} className="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full">{s}</span>
-                      ))}
-                    </div>
-                  )}
-                  <Link
-                    to={`/profile/${m.user.id}`}
-                    className="mt-3 block text-center text-xs btn-secondary"
-                  >
-                    View Profile
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </motion.div>
       </div>
     </MainLayout>
   )

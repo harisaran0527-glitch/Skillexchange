@@ -23,7 +23,7 @@ export default function AdminDashboard() {
     ]).then(([s, c, st]) => {
       setStats(s)
       setCharts(c)
-      setRecentStudents(st.data)
+      setRecentStudents(st.students ?? [])
     }).finally(() => setLoading(false))
   }, [])
 

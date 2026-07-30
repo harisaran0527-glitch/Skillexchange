@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
   profileImage: { type: String, default: '' },
   skillsOffered: { type: [String], default: [] },
   completedCourses: { type: [String], default: [] },
+  courseRatings: [{
+    courseName: { type: String, required: true },
+    rating: { type: Number, required: true, min: 1.0, max: 5.0 }
+  }],
   certificates: { type: [String], default: [] },
   availability: { type: String, default: 'available', enum: ['available', 'busy', 'offline'] },
   rating: { type: Number, default: 0 },

@@ -1,16 +1,22 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Shield, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Shield, Eye, EyeOff, AlertCircle, GraduationCap } from 'lucide-react'
 import { useAdminAuth } from '../context/AdminAuthContext'
 
 export default function AdminLogin() {
-  const { login, loading } = useAdminAuth()
+  const { login, token, loading } = useAdminAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (token) {
+      navigate('/admin/dashboard', { replace: true })
+    }
+  }, [token, navigate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -20,7 +26,7 @@ export default function AdminLogin() {
       await login(email, password)
       navigate('/admin/dashboard', { replace: true })
     } catch (err: any) {
-      setError(err.message || 'Invalid admin credentials')
+      setError(err.message || 'Invalid administrator credentials')
     }
   }
 
@@ -62,7 +68,7 @@ export default function AdminLogin() {
               <Shield size={28} className="text-white" />
             </motion.div>
             <h1 className="text-2xl font-extrabold text-white">Admin Portal</h1>
-            <p className="text-slate-400 text-sm mt-1">SkillSwap Administration</p>
+            <p className="text-slate-400 text-sm mt-1">SkillExchange Administration</p>
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
               style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)' }}>
               🔒 Restricted Access
@@ -118,7 +124,14 @@ export default function AdminLogin() {
             </motion.button>
           </form>
 
-          <p className="text-center text-xs text-slate-600 mt-6">
+          <div className="mt-6 pt-4 border-t border-white/5 text-center">
+            <Link to="/student" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-400 transition-colors">
+              <GraduationCap size={14} />
+              Not an Admin? Go to Student Portal →
+            </Link>
+          </div>
+
+          <p className="text-center text-xs text-slate-600 mt-4">
             This portal is restricted to authorized administrators only.
           </p>
         </div>
@@ -126,3 +139,4 @@ export default function AdminLogin() {
     </div>
   )
 }
+

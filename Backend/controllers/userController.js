@@ -91,7 +91,12 @@ exports.searchUsers = async (req, res, next) => {
     if (availability) where.availability = availability
 
     const users = await User.find(where).select('-password')
-    res.json(users)
+    const formatted = users.map(u => {
+      const obj = u.toObject()
+      if (obj.rating === undefined || obj.rating === null) obj.rating = 4.5
+      return obj
+    })
+    res.json(formatted)
   } catch (err) {
     next(err)
   }
@@ -137,13 +142,49 @@ exports.removeSkillFromProfile = async (req, res, next) => {
     const user = await User.findById(req.user.id)
     if (!user) return res.status(404).json({ message: 'User not found' })
 
+    const updated = user[updateField]
     user[updateField] = user[updateField].filter(s => s !== skill)
     await user.save()
 
-    const updated = user.toObject()
-    delete updated.password
-    res.json({ message: 'Skill removed', user: updated })
+    const updatedObj = user.toObject()
+    delete updatedObj.password
+    res.json({ message: 'Skill removed', user: updatedObj })
   } catch (err) {
     next(err)
   }
 }
+
+// Send an email to a student
+exports.sendStudentEmail = async (req, res, next) => {
+  try {
+    const student = await User.findById(req.params.id)
+    if (!student) return res.status(404).json({ message: 'Student not found' })
+
+    const fromUser = await User.findById(req.user.id)
+    const fromName = fromUser ? fromUser.name : 'A peer student'
+
+    const { sendEmail } = require('./emailController')
+    
+    const html = `
+      <div style="font-family: sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc; border-radius: 12px;">
+        <h2 style="color: #6366f1;">Hello ${student.name},</h2>
+        <p style="font-size: 16px; line-height: 1.5;">You have received a connection request from <strong>${fromName}</strong> on SkillSwap.</p>
+        <p style="font-size: 14px; color: #94a3b8;">Log in to your dashboard to connect and collaborate.</p>
+        <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #64748b;">This is an automated message sent from SkillSwap.</p>
+      </div>
+    `
+
+    const result = await sendEmail({
+      to: student.email,
+      toName: student.name,
+      subject: `SkillSwap Connection Request from ${fromName}`,
+      html
+    })
+
+    res.json({ success: true, message: 'Email request processed', result })
+  } catch (err) {
+    next(err)
+  }
+}
+

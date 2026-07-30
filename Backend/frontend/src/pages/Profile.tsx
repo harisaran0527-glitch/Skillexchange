@@ -85,33 +85,20 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Skills */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="glass-card p-6 rounded-2xl">
-              <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wide mb-3">Skills Offered</h3>
-              {profile.skillsOffered && profile.skillsOffered.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {profile.skillsOffered.map(s => (
-                    <span key={s} className="skill-tag-offered">{s}</span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400">No skills listed yet.</p>
-              )}
-            </div>
-
-            <div className="glass-card p-6 rounded-2xl">
-              <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wide mb-3">Completed Courses</h3>
-              {profile.completedCourses && profile.completedCourses.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {profile.completedCourses.map(c => (
-                    <span key={c} className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-medium rounded-lg border border-emerald-500/20">{c}</span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400">No courses completed yet.</p>
-              )}
-            </div>
+          {/* Courses */}
+          <div className="glass-card p-6 rounded-2xl">
+            <h3 className="font-semibold text-sm text-slate-400 uppercase tracking-wide mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Completed Courses
+            </h3>
+            {profile.completedCourses && profile.completedCourses.length > 0 ? (
+              <div className="flex flex-wrap gap-2.5">
+                {profile.completedCourses.map(c => (
+                  <span key={c} className="px-3.5 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-semibold rounded-xl border border-emerald-500/20">{c}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 italic">No completed courses listed yet.</p>
+            )}
           </div>
         </motion.div>
       </div>

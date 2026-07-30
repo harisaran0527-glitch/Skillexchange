@@ -19,7 +19,7 @@ Docker (production)
    docker-compose up --build -d
 3. Check logs:
    docker-compose logs -f
-4. The backend will listen on port 5000 (http://localhost:5000)
+4. The backend will listen on port 5005 (http://localhost:5005)
 
 Docker (development)
 1. Create .env if needed
@@ -48,8 +48,8 @@ Notes
 Troubleshooting deployment issues that prevent Chrome from loading the site
 1. Mixed content: If your frontend is served over HTTPS and backend is HTTP, Chrome will block requests. Serve backend over HTTPS or configure frontend to use HTTPS for API calls.
 2. CORS: If Chrome shows CORS errors in DevTools console, set CORS_ORIGIN in .env to the frontend origin (e.g., https://your-app.example.com) and enable CORS_CREDENTIALS=true if cookies/credentials are used.
-3. Firewall / Port blocking: Ensure port 5000 (or proxy port) is open on the host and any cloud firewall allows inbound traffic.
-4. Reverse proxy: If using Nginx/Traefik, ensure proxy passes correct Host and X-Forwarded headers and routes to container IP:5000.
+3. Firewall / Port blocking: Ensure port 5005 (or proxy port) is open on the host and any cloud firewall allows inbound traffic.
+4. Reverse proxy: If using Nginx/Traefik, ensure proxy passes correct Host and X-Forwarded headers and routes to container IP:5005.
 5. DNS / SSL: Ensure domain resolves to host IP and SSL is configured; Chrome blocks insecure content on HTTPS pages.
 
 If you encounter an error during deployment, run the diagnostics script (created in the repository):

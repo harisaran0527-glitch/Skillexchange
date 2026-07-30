@@ -39,6 +39,8 @@ exports.sendMessage = async (req, res, next) => {
     // Real-time emit
     if (req.io) {
       const { getConnectedUsers } = require('../socket')
+      const User = require('../models/User')
+      const senderUser = await User.findById(req.user.id).select('name')
       const users = getConnectedUsers()
       const socketId = users.get(receiverId)
       if (socketId) {
@@ -47,7 +49,7 @@ exports.sendMessage = async (req, res, next) => {
         // Also emit a notification
         req.io.to(socketId).emit('new_notification', {
           notificationType: 'Message',
-          message: `New message from ${req.user.name || 'someone'}`,
+          message: `New message from ${senderUser?.name || 'someone'}`,
           createdTime: new Date().toLocaleTimeString()
         })
       }

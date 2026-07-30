@@ -1,5 +1,6 @@
 const User = require('../models/User')
 const Course = require('../models/Course')
+const Skill = require('../models/Skill')
 const bcrypt = require('bcryptjs')
 const LearningRequest = require('../models/LearningRequest')
 const Notification = require('../models/Notification')
@@ -79,12 +80,21 @@ exports.getCourses = async (req, res, next) => {
 
 exports.createCourse = async (req, res, next) => {
   try {
-    const { name, description, category, icon } = req.body
+    const { name, description, category, icon, youtubeUrl, questionBankUrl, questionBankTitle, questionBankContent } = req.body
     if (!name) return res.status(400).json({ message: 'Course name required' })
     const existing = await Course.findOne({ name: name.trim() })
     if (existing) return res.status(400).json({ message: 'Course already exists' })
     
-    const course = new Course({ name: name.trim(), description: description || '', category: category || 'General', icon: icon || '' })
+    const course = new Course({
+      name: name.trim(),
+      description: description || '',
+      category: category || 'General',
+      icon: icon || '',
+      youtubeUrl: youtubeUrl || '',
+      questionBankUrl: questionBankUrl || '',
+      questionBankTitle: questionBankTitle || '',
+      questionBankContent: questionBankContent || ''
+    })
     await course.save()
     res.status(201).json(course)
   } catch (err) { next(err) }
@@ -288,7 +298,14 @@ exports.getStudentById = async (req, res, next) => {
 exports.updateStudent = async (req, res, next) => {
   try {
     const updates = { ...req.body }
-    delete updates.password
+    
+    if (updates.password && updates.password.trim() !== '') {
+      const salt = await require('bcryptjs').genSalt(10)
+      updates.password = await require('bcryptjs').hash(updates.password, salt)
+    } else {
+      delete updates.password
+    }
+    
     delete updates.id
     delete updates._id
 
@@ -350,28 +367,56 @@ exports.activateStudent = async (req, res, next) => {
 // ── SKILL MANAGEMENT ─────────────────────────────────────────────────
 exports.getAllSkills = async (req, res, next) => {
   try {
-    const users = await User.find().select('skillsOffered')
+    const dbSkills = await Skill.find().sort({ name: 1 })
+    const users = await User.find().select('name email department skillsOffered isSuspended')
+    
     const skillMap = {}
+    dbSkills.forEach(sk => {
+      if (sk.name) skillMap[sk.name.trim()] = []
+    })
+
     users.forEach(u => {
-      if (u.skillsOffered) {
-          u.skillsOffered.forEach(s => {
-            const k = s.trim()
-            if (!skillMap[k]) skillMap[k] = { offered: 0 }
-            skillMap[k].offered++
-          })
+      if (u.skillsOffered && Array.isArray(u.skillsOffered)) {
+        u.skillsOffered.forEach(s => {
+          const k = s.trim()
+          if (!skillMap[k]) skillMap[k] = []
+          // Check if student already added for this skill
+          if (!skillMap[k].some(st => st._id.toString() === u._id.toString())) {
+            skillMap[k].push({
+              _id: u._id,
+              name: u.name,
+              email: u.email,
+              department: u.department,
+              isSuspended: u.isSuspended
+            })
+          }
+        })
       }
     })
-    const skills = Object.entries(skillMap)
-      .map(([name, counts]) => ({
-        name,
-        offered: counts.offered,
-        total: counts.offered
-      }))
-      .sort((a, b) => b.total - a.total)
+
+    const skills = Object.entries(skillMap).map(([name, students]) => ({
+      name,
+      students,
+      totalStudents: students.length
+    })).sort((a, b) => a.name.localeCompare(b.name))
+
     res.json(skills)
   } catch (err) {
     next(err)
   }
+}
+
+exports.createSkill = async (req, res, next) => {
+  try {
+    const { name } = req.body
+    if (!name || !name.trim()) return res.status(400).json({ message: 'Skill name is required' })
+    const trimmed = name.trim()
+    const existing = await Skill.findOne({ name: { $regex: new RegExp(`^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } })
+    if (existing) return res.status(400).json({ message: 'Skill already exists' })
+    const skill = new Skill({ name: trimmed })
+    await skill.save()
+    res.status(201).json(skill)
+  } catch (err) { next(err) }
 }
 
 exports.editSkill = async (req, res, next) => {
@@ -379,13 +424,18 @@ exports.editSkill = async (req, res, next) => {
     const { oldName, newName } = req.body
     if (!oldName || !newName) return res.status(400).json({ message: 'oldName and newName required' })
 
-    const users = await User.find({ skillsOffered: oldName })
+    const trimmedOld = oldName.trim()
+    const trimmedNew = newName.trim()
+
+    await Skill.findOneAndUpdate({ name: trimmedOld }, { name: trimmedNew })
+
+    const users = await User.find({ skillsOffered: trimmedOld })
     for (const user of users) {
-        user.skillsOffered = user.skillsOffered.map(s => s === oldName ? newName : s)
-        await user.save()
+      user.skillsOffered = user.skillsOffered.map(s => s === trimmedOld ? trimmedNew : s)
+      await user.save()
     }
     
-    res.json({ message: `Skill renamed from "${oldName}" to "${newName}"` })
+    res.json({ message: `Skill renamed from "${trimmedOld}" to "${trimmedNew}"` })
   } catch (err) {
     next(err)
   }
@@ -394,20 +444,23 @@ exports.editSkill = async (req, res, next) => {
 exports.deleteSkill = async (req, res, next) => {
   try {
     const { name } = req.params
+    const trimmedName = name.trim()
+
+    await Skill.findOneAndDelete({ name: trimmedName })
     
-    const users = await User.find({ skillsOffered: name })
+    const users = await User.find({ skillsOffered: trimmedName })
     for (const user of users) {
-        user.skillsOffered = user.skillsOffered.filter(s => s !== name)
-        await user.save()
+      user.skillsOffered = user.skillsOffered.filter(s => s !== trimmedName)
+      await user.save()
     }
 
     await createNotification({
       senderId: req.admin?.id || 'admin',
       receiverId: 'admin',
-      message: `Skill deleted: ${name}`,
+      message: `Skill deleted: ${trimmedName}`,
       notificationType: 'System Notification'
     }, req.io)
-    res.json({ message: `Skill "${name}" removed from all students` })
+    res.json({ message: `Skill "${trimmedName}" removed successfully` })
   } catch (err) {
     next(err)
   }
@@ -419,9 +472,10 @@ exports.getAllRequests = async (req, res, next) => {
     const { status, page = 1, limit = 10 } = req.query
     const query = {}
     if (status) {
-      if (status.toLowerCase() === 'pending') query.status = 'Pending'
-      if (status.toLowerCase() === 'approved' || status.toLowerCase() === 'accepted') query.status = 'Accepted'
-      if (status.toLowerCase() === 'rejected') query.status = 'Rejected'
+      const s = status.toUpperCase()
+      if (s === 'PENDING') query.status = { $in: ['PENDING', 'Pending'] }
+      if (s === 'APPROVED' || s === 'ACCEPTED') query.status = { $in: ['APPROVED', 'Approved', 'Accepted'] }
+      if (s === 'REJECTED') query.status = { $in: ['REJECTED', 'Rejected'] }
     }
 
     const total = await LearningRequest.countDocuments(query)
@@ -433,13 +487,17 @@ exports.getAllRequests = async (req, res, next) => {
     const requests = await Promise.all(mRequests.map(async (r) => {
       const fromUser = await User.findById(r.studentId).select('name email department')
       const toUser = await User.findById(r.tutorId).select('name email department')
+      const st = r.status ? r.status.toUpperCase() : 'PENDING'
+      const normStatus = (st === 'ACCEPTED' || st === 'APPROVED') ? 'APPROVED' : (st === 'REJECTED') ? 'REJECTED' : 'PENDING'
+
       return {
         id: r._id.toString(),
         _id: r._id.toString(),
         skill: r.courseName,
         courseName: r.courseName,
-        status: r.status.toLowerCase() === 'accepted' ? 'approved' : r.status.toLowerCase(),
+        status: normStatus,
         createdAt: r.createdAt,
+        updatedAt: r.updatedAt || r.createdAt,
         fromUser: fromUser || { name: r.studentName, email: '', department: r.department || '' },
         toUser: toUser || { name: r.tutorName, email: '', department: '' }
       }
@@ -594,3 +652,115 @@ exports.getReports = async (req, res, next) => {
     next(err)
   }
 }
+
+// ── COURSE MANAGEMENT (Admin) ───────────────────────────────────────
+exports.getCourses = async (req, res, next) => {
+  try {
+    const { q, category } = req.query
+    const where = {}
+    if (q) {
+      const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      where.name = { $regex: escaped, $options: 'i' }
+    }
+    if (category && category !== 'All') where.category = category
+
+    const courses = await Course.find(where).sort({ name: 1 })
+    res.json(courses)
+  } catch (err) { next(err) }
+}
+
+exports.createCourse = async (req, res, next) => {
+  try {
+    const { name, description, category, icon, youtubeUrl, questionBankTitle, questionBankUrl, questionBankContent } = req.body
+    if (!name || !name.trim()) return res.status(400).json({ message: 'Course name is required' })
+    const trimmed = name.trim()
+    const existing = await Course.findOne({ name: { $regex: new RegExp(`^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } })
+    if (existing) return res.status(400).json({ message: 'Course already exists' })
+
+    const course = new Course({
+      name: trimmed,
+      description: description || '',
+      category: category || 'Programming',
+      icon: icon || '📘',
+      youtubeUrl: youtubeUrl || '',
+      questionBankTitle: questionBankTitle || '',
+      questionBankUrl: questionBankUrl || '',
+      questionBankContent: questionBankContent || ''
+    })
+    await course.save()
+
+    // Also ensure Skill document exists
+    await Skill.findOneAndUpdate({ name: trimmed }, { name: trimmed }, { upsert: true })
+
+    res.status(201).json(course)
+  } catch (err) { next(err) }
+}
+
+exports.updateCourse = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const updateData = { ...req.body }
+    delete updateData._id
+    delete updateData.id
+
+    const course = await Course.findByIdAndUpdate(id, updateData, { new: true })
+    if (!course) return res.status(404).json({ message: 'Course not found' })
+    res.json(course)
+  } catch (err) { next(err) }
+}
+
+exports.deleteCourse = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    await Course.findByIdAndDelete(id)
+    res.json({ message: 'Course deleted successfully' })
+  } catch (err) { next(err) }
+}
+
+// ── RATE COMPLETED COURSE (Admin) ──────────────────────────────────
+exports.rateStudentCourse = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const { courseName, rating } = req.body
+
+    if (!courseName || rating === undefined || rating === null) {
+      return res.status(400).json({ message: 'courseName and rating are required' })
+    }
+
+    const numRating = parseFloat(rating)
+    if (isNaN(numRating) || numRating < 1.0 || numRating > 5.0) {
+      return res.status(400).json({ message: 'Rating must be between 1.0 and 5.0' })
+    }
+
+    const student = await User.findById(id)
+    if (!student) return res.status(404).json({ message: 'Student not found' })
+
+    // Rating is allowed ONLY for completed courses!
+    if (!student.completedCourses || !student.completedCourses.includes(courseName)) {
+      return res.status(400).json({ message: `Course "${courseName}" is not marked as completed for this student` })
+    }
+
+    if (!student.courseRatings) student.courseRatings = []
+
+    const existingIdx = student.courseRatings.findIndex(cr => cr.courseName.toLowerCase() === courseName.toLowerCase())
+    if (existingIdx >= 0) {
+      student.courseRatings[existingIdx].rating = numRating
+    } else {
+      student.courseRatings.push({ courseName, rating: numRating })
+    }
+
+    // Calculate student's overall rating = average of completed course ratings
+    const total = student.courseRatings.reduce((sum, cr) => sum + cr.rating, 0)
+    const avg = total / student.courseRatings.length
+    student.rating = parseFloat(avg.toFixed(1))
+    student.reviewCount = student.courseRatings.length
+
+    await student.save()
+
+    const studentObj = student.toObject()
+    delete studentObj.password
+    res.json(studentObj)
+  } catch (err) { next(err) }
+}
+
+

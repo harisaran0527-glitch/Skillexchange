@@ -30,7 +30,7 @@ export default function Chat() {
       // Check if chat is unlocked (only if there's an Accepted request)
       const baseUrl = import.meta.env.VITE_API_URL || '';
       fetch(`${baseUrl}/api/chat/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('skillswap_token')}` }
       })
       .then(res => {
         if (res.status === 403) setChatLocked(true);
@@ -121,7 +121,7 @@ export default function Chat() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+        Authorization: `Bearer ${localStorage.getItem('skillswap_token')}`
       },
       body: JSON.stringify({ receiverId: id, message: input })
     }).catch(err => console.error(err))

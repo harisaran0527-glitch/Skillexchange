@@ -65,7 +65,7 @@ Start-Process -FilePath "powershell" -ArgumentList "-NoExit -Command `"cd '$scri
 Start-Sleep -Seconds 2
 
 # Open default browser to the backend root
-$port = $env:PORT -or 5000
+$port = $env:PORT -or 5005
 $uri = "http://localhost:$port/"
 Write-Host "Opening $uri in default browser..."
 Start-Process $uri

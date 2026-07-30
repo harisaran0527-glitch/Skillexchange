@@ -10,7 +10,9 @@ exports.createRequest = async (req, res, next) => {
   try {
     const { toUserId, skill, courseName, message } = req.body
     if (!toUserId || !skill) return res.status(400).json({ message: 'toUserId and skill are required' })
-    if (toUserId === req.user.id) return res.status(400).json({ message: 'You cannot send a request to yourself' })
+    if (toUserId.toString() === req.user.id.toString()) {
+      return res.status(400).json({ message: 'You cannot send a teaching request to yourself.' })
+    }
 
     const [fromUser, toUser] = await Promise.all([
       User.findById(req.user.id),
@@ -20,9 +22,12 @@ exports.createRequest = async (req, res, next) => {
 
     // Check duplicate pending
     const existing = await LearningRequest.findOne({
-      studentId: req.user.id, tutorId: toUserId, courseName: courseName || skill, status: 'Pending'
+      studentId: req.user.id,
+      tutorId: toUserId,
+      courseName: courseName || skill,
+      status: { $in: ['PENDING', 'Pending'] }
     })
-    if (existing) return res.status(400).json({ message: 'You already have a pending request for this skill' })
+    if (existing) return res.status(400).json({ message: 'You already have a pending teaching request for this course.' })
 
     const now = new Date()
     const request = new LearningRequest({
@@ -33,7 +38,7 @@ exports.createRequest = async (req, res, next) => {
       courseName: courseName || skill,
       department: fromUser.department,
       section: fromUser.section,
-      status: 'Pending',
+      status: 'PENDING',
       requestDate: now.toLocaleDateString(),
       requestTime: now.toLocaleTimeString(),
       message: message || ''
@@ -46,17 +51,17 @@ exports.createRequest = async (req, res, next) => {
       receiverId: toUserId,
       requestId: request._id.toString(),
       courseName: courseName || skill,
-      message: `${fromUser.name} wants to learn ${courseName || skill} from you`,
+      message: `${fromUser.name} requested your help to learn ${courseName || skill}`,
       notificationType: 'Learning Request'
     }, req.io)
 
     // Admin notification
     await createNotification({
       senderId: req.user.id,
-      receiverId: 'admin', // assuming a system way to notify admins
+      receiverId: 'admin',
       requestId: request._id.toString(),
       courseName: courseName || skill,
-      message: `New Learning Request from ${fromUser.name} to ${toUser.name}`,
+      message: `New Teaching Request: ${fromUser.name} -> ${toUser.name} (${courseName || skill})`,
       notificationType: 'System Notification'
     }, req.io)
 
@@ -66,13 +71,11 @@ exports.createRequest = async (req, res, next) => {
         toEmail: toUser.email,
         toName: toUser.name,
         fromName: fromUser.name,
-        courseName: courseName || skill,
-        department: fromUser.department,
-        section: fromUser.section
+        courseName: courseName || skill
       }).catch(err => console.warn('[Email] Failed:', err.message))
     }
 
-    res.status(201).json({ message: 'Session request sent successfully!', request })
+    res.status(201).json({ message: 'Teaching request sent successfully!', request })
   } catch (err) { next(err) }
 }
 
@@ -81,10 +84,11 @@ exports.getReceivedRequests = async (req, res, next) => {
   try {
     const requests = await LearningRequest.find({ tutorId: req.user.id }).sort({ createdAt: -1 })
     
-    // Attach fromUser details from mongoose
     const enriched = await Promise.all(requests.map(async (r) => {
       const fromUser = await User.findById(r.studentId).select('name email department year profileImage rating')
-      return { ...r.toObject(), id: r._id.toString(), fromUser }
+      const rawStatus = (r.status || '').toUpperCase()
+      const normalizedStatus = (rawStatus === 'ACCEPTED' || rawStatus === 'APPROVED') ? 'APPROVED' : (rawStatus === 'REJECTED') ? 'REJECTED' : 'PENDING'
+      return { ...r.toObject(), id: r._id.toString(), status: normalizedStatus, fromUser }
     }))
     res.json(enriched)
   } catch (err) { next(err) }
@@ -95,10 +99,11 @@ exports.getSentRequests = async (req, res, next) => {
   try {
     const requests = await LearningRequest.find({ studentId: req.user.id }).sort({ createdAt: -1 })
     
-    // Attach toUser details from mongoose
     const enriched = await Promise.all(requests.map(async (r) => {
       const toUser = await User.findById(r.tutorId).select('name email department year profileImage rating')
-      return { ...r.toObject(), id: r._id.toString(), toUser }
+      const rawStatus = (r.status || '').toUpperCase()
+      const normalizedStatus = (rawStatus === 'ACCEPTED' || rawStatus === 'APPROVED') ? 'APPROVED' : (rawStatus === 'REJECTED') ? 'REJECTED' : 'PENDING'
+      return { ...r.toObject(), id: r._id.toString(), status: normalizedStatus, toUser }
     }))
     res.json(enriched)
   } catch (err) { next(err) }
@@ -110,9 +115,9 @@ exports.acceptRequest = async (req, res, next) => {
     const request = await LearningRequest.findById(req.params.id)
     if (!request) return res.status(404).json({ message: 'Request not found' })
     if (request.tutorId !== req.user.id) return res.status(403).json({ message: 'Not authorized' })
-    if (request.status !== 'Pending') return res.status(400).json({ message: 'Request already responded to' })
+    if (request.status !== 'PENDING' && request.status !== 'Pending') return res.status(400).json({ message: 'Request already responded to' })
 
-    request.status = 'Accepted'
+    request.status = 'APPROVED'
     await request.save()
 
     const fromUser = await User.findById(request.studentId)
@@ -124,18 +129,8 @@ exports.acceptRequest = async (req, res, next) => {
       receiverId: request.studentId,
       requestId: request._id.toString(),
       courseName: request.courseName,
-      message: `${toUser.name} accepted your request to learn ${request.courseName}`,
+      message: `${toUser.name} accepted your request for ${request.courseName}`,
       notificationType: 'Accepted'
-    }, req.io)
-
-    // Admin Notification
-    await createNotification({
-      senderId: req.user.id,
-      receiverId: 'admin',
-      requestId: request._id.toString(),
-      courseName: request.courseName,
-      message: `Learning Request Accepted: ${toUser.name} will teach ${fromUser.name}`,
-      notificationType: 'System Notification'
     }, req.io)
 
     // Send email to the requester
@@ -148,7 +143,7 @@ exports.acceptRequest = async (req, res, next) => {
       }).catch(() => {})
     }
 
-    res.json({ message: 'Request accepted!', request })
+    res.json({ message: 'Request approved!', request })
   } catch (err) { next(err) }
 }
 
@@ -159,29 +154,18 @@ exports.rejectRequest = async (req, res, next) => {
     if (!request) return res.status(404).json({ message: 'Request not found' })
     if (request.tutorId !== req.user.id) return res.status(403).json({ message: 'Not authorized' })
 
-    request.status = 'Rejected'
+    request.status = 'REJECTED'
     await request.save()
 
     const toUser = await User.findById(request.tutorId)
-    const fromUser = await User.findById(request.studentId)
 
     await createNotification({
       senderId: req.user.id,
       receiverId: request.studentId,
       requestId: request._id.toString(),
       courseName: request.courseName,
-      message: `${toUser.name} declined your request for ${request.courseName}`,
+      message: `${toUser.name} rejected your request for ${request.courseName}`,
       notificationType: 'Rejected'
-    }, req.io)
-
-    // Admin Notification
-    await createNotification({
-      senderId: req.user.id,
-      receiverId: 'admin',
-      requestId: request._id.toString(),
-      courseName: request.courseName,
-      message: `Learning Request Rejected: ${toUser.name} declined ${fromUser.name}`,
-      notificationType: 'System Notification'
     }, req.io)
 
     res.json({ message: 'Request rejected', request })

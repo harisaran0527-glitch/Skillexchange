@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Book, Award, Calendar, X } from 'lucide-react'
+import { Book, Award, Calendar, X, BookOpen } from 'lucide-react'
 
 interface CompletedCoursesModalProps {
   isOpen: boolean
@@ -52,7 +52,7 @@ export default function CompletedCoursesModal({ isOpen, onClose, studentName, co
               </div>
               <button 
                 onClick={onClose} 
-                className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-slate-700"
               >
                 <X size={20} />
               </button>
@@ -61,9 +61,9 @@ export default function CompletedCoursesModal({ isOpen, onClose, studentName, co
             {/* Content */}
             <div className="relative z-10 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar space-y-4">
               {courses.length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-slate-700 rounded-2xl">
-                  <div className="text-4xl mb-3">📭</div>
-                  <p className="text-slate-500">No completed courses listed.</p>
+                <div className="text-center py-12 border border-dashed border-slate-700/80 rounded-2xl bg-slate-950/40">
+                  <BookOpen size={36} className="mx-auto text-indigo-400/60 mb-2" />
+                  <p className="text-slate-400 text-sm font-medium">No completed courses listed.</p>
                 </div>
               ) : (
                 courses.map((course, idx) => {

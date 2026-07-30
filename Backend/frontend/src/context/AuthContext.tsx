@@ -11,8 +11,10 @@ interface AuthContextType {
     email: string
     password: string
     department?: string
+    section?: string
     year?: string
     college?: string
+    profileImage?: string
   }) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -25,8 +27,12 @@ const USER_KEY = 'skillswap_user'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
-    const saved = localStorage.getItem(USER_KEY)
-    return saved ? JSON.parse(saved) : null
+    try {
+      const saved = localStorage.getItem(USER_KEY)
+      return saved && saved !== 'undefined' ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
   })
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
   const [loading, setLoading] = useState(false)

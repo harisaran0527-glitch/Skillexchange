@@ -26,6 +26,16 @@ const { errorHandler, notFound } = require('./middleware/errorHandler')
 const app = express()
 const server = http.createServer(app)
 
+// ─── Request Logging Middleware ───────────────────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now()
+  res.on('finish', () => {
+    const duration = Date.now() - start
+    console.log(`[REQUEST] ${req.method} ${req.url} - Status: ${res.statusCode} (${duration}ms)`)
+  })
+  next()
+})
+
 // ─── CORS Configuration ───────────────────────────────────────────────────────
 // Allow origins from CORS_ORIGIN env var, plus all *.vercel.app preview URLs
 const rawOrigins = process.env.CORS_ORIGIN || ''
@@ -82,7 +92,6 @@ app.use('/api/admin', adminProtect, adminRoutes)   // Protected — requires adm
 // Health & readiness
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 app.get('/api/readiness', (req, res) => res.json({ readyState: 1 }))
-app.get('/', (req, res) => res.send('SkillSwap Backend is running'))
 
 // ─── Frontend Static Build (SPA fallback) ─────────────────────────────────────
 // Registered AFTER all API routes so the wildcard never intercepts API requests.
@@ -93,6 +102,7 @@ const possibleFrontendPaths = [
   path.join(__dirname, '..', 'frontend', 'build')
 ]
 
+let frontendServed = false
 for (const p of possibleFrontendPaths) {
   if (fs.existsSync(p)) {
     console.log('Serving frontend static from', p)
@@ -102,8 +112,13 @@ for (const p of possibleFrontendPaths) {
       if (req.path.startsWith('/api/')) return next()
       res.sendFile(path.join(p, 'index.html'))
     })
+    frontendServed = true
     break
   }
+}
+
+if (!frontendServed) {
+  app.get('/', (req, res) => res.send('SkillSwap Backend is running (no frontend build found)'))
 }
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
@@ -118,14 +133,44 @@ async function startServer() {
   await connectDB()
   await connectMongoDB()
 
-  const PORT = process.env.PORT || 5000
-  const HOST = process.env.HOST || '0.0.0.0'
+  const PORT = parseInt(process.env.PORT || '5005', 10)
+  const HOST = process.env.HOST || '127.0.0.1'
 
+  console.log(`[Diagnostic] PID: ${process.pid}`)
+  console.log(`[Diagnostic] Attempting to listen on ${HOST}:${PORT} ...`)
+
+  process.on('uncaughtException', (err) => {
+    console.error('[Diagnostic] Uncaught Exception:', err.stack || err)
+  })
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Diagnostic] Unhandled Rejection at:', promise, 'reason:', reason)
+  })
+
+  server.on('error', (err) => {
+    console.error('[Diagnostic] Server error:', err.stack || err)
+  })
+
+  server.on('listening', () => {
+    console.log('[Diagnostic] Server listening event fired.')
+    const addr = server.address()
+    console.log(`[Diagnostic] Server is listening at:`, addr)
+  })
+
+  server.on('close', () => {
+    console.log('[Diagnostic] Server closed.')
+  })
+
+  console.log('[Diagnostic] typeof PORT:', typeof PORT, 'PORT:', PORT, 'HOST:', HOST)
+  console.log('[Diagnostic] Before server.listen()')
   server.listen(PORT, HOST, () => {
+    console.log('[Diagnostic] After server.listen() callback')
     console.log(`Server running on ${HOST}:${PORT}`)
     console.log(`NODE_ENV=${process.env.NODE_ENV || 'development'}`)
     console.log(`CORS origins: ${allowedOrigins.length ? allowedOrigins.join(', ') : 'all (open)'}`)
   })
 }
 
-startServer()
+startServer().catch(err => {
+  console.error('[Diagnostic] startServer failed:', err.stack || err)
+})

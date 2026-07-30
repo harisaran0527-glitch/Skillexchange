@@ -119,26 +119,6 @@ export default function StudentProfileView() {
               {/* Removed About Me section */}
 
               <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8">
-                <h2 className="text-xl font-bold text-white mb-6">Skills Offered</h2>
-                {student.skillsOffered?.length > 0 ? (
-                  <div className="flex flex-wrap gap-3">
-                    {student.skillsOffered.map((s: string) => (
-                      <button 
-                        key={s} 
-                        onClick={() => handleBookSession(s)}
-                        className="group px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-600 hover:text-white hover:border-indigo-500 transition-all flex items-center gap-2"
-                      >
-                        {s}
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-white/20 px-2 py-0.5 rounded ml-1">Book</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-slate-500 text-sm">No skills offered yet.</p>
-                )}
-              </div>
-
-              <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8">
                 <h2 className="text-xl font-bold text-white mb-6">Completed Courses</h2>
                 {student.completedCourses?.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

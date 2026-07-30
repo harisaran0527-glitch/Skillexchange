@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import MainLayout from '../layouts/main/MainLayout'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
-import { User, Mail, Lock, Building, BookOpen, Calendar, Image } from 'lucide-react'
+import { User, Mail, Lock, Building, BookOpen, Calendar, Image, Eye, EyeOff } from 'lucide-react'
 
 // ── Department → Section mapping ────────────────────────
 const DEPARTMENT_SECTIONS: Record<string, string[]> = {
@@ -28,6 +28,8 @@ export default function Register() {
     name: '', email: '', password: '', confirmPassword: '',
     department: '', section: '', year: '', college: '', profileImage: ''
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
 
   // Dependent sections based on selected department
@@ -137,17 +139,29 @@ export default function Register() {
                   <label htmlFor="password" className="flex items-center gap-2 text-sm font-semibold text-slate-300 mb-2">
                     <Lock size={14} className="text-indigo-400" /> Password *
                   </label>
-                  <input id="password" name="password" type="password" value={form.password} onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                    placeholder="Min 6 characters" autoComplete="new-password" />
+                  <div className="relative">
+                    <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange}
+                      className="w-full px-4 py-3 pr-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      placeholder="Min 6 characters" autoComplete="new-password" />
+                    <button type="button" onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="confirmPassword" className="flex items-center gap-2 text-sm font-semibold text-slate-300 mb-2">
                     <Lock size={14} className="text-indigo-400" /> Confirm Password *
                   </label>
-                  <input id="confirmPassword" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                    placeholder="Repeat password" autoComplete="new-password" />
+                  <div className="relative">
+                    <input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} value={form.confirmPassword} onChange={handleChange}
+                      className="w-full px-4 py-3 pr-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      placeholder="Repeat password" autoComplete="new-password" />
+                    <button type="button" onClick={() => setShowConfirmPassword(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 

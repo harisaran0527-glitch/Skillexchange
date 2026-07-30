@@ -6,8 +6,12 @@ const ADMIN_USER_KEY  = 'skillswap_admin_user'
 
 export function getAdminToken() { return localStorage.getItem(ADMIN_TOKEN_KEY) }
 export function getAdminUser() {
-  const s = localStorage.getItem(ADMIN_USER_KEY)
-  return s ? JSON.parse(s) : null
+  try {
+    const s = localStorage.getItem(ADMIN_USER_KEY)
+    return s && s !== 'undefined' ? JSON.parse(s) : null
+  } catch {
+    return null
+  }
 }
 export function setAdminSession(token: string, admin: AdminUser) {
   localStorage.setItem(ADMIN_TOKEN_KEY, token)
@@ -25,10 +29,13 @@ async function adminRequest<T>(path: string, options: RequestInit = {}): Promise
     ...(options.headers as Record<string,string>),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'https://skillexchange.onrender.com/api'
+  const baseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api'
   const res = await fetch(`${baseUrl}/admin${path}`, { ...options, headers })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }))
+    if (res.status === 401) {
+      clearAdminSession()
+    }
     throw new Error(err.message || 'Admin request failed')
   }
   if (res.status === 204) return undefined as unknown as T
@@ -49,6 +56,9 @@ export interface Student {
   profileImage?: string
   skillsOffered: string[]
   completedCourses: string[]
+  courseRatings?: { courseName: string; rating: number }[]
+  rating?: number
+  reviewCount?: number
   certificates: string[]
   portfolioLinks: string[]
   socialLinks: string[]
@@ -74,8 +84,20 @@ export interface ChartData {
   activeVsInactive: { name: string; value: number }[]
 }
 
+export interface SkillStudent {
+  _id: string
+  name: string
+  email: string
+  department?: string
+  isSuspended?: boolean
+}
+
 export interface SkillStat {
-  name: string; offered: number; total: number
+  name: string
+  students?: SkillStudent[]
+  totalStudents?: number
+  offered?: number
+  total?: number
 }
 
 export interface LearningRequest {
@@ -121,11 +143,14 @@ export const adminStudentsApi = {
   delete: (id: string) => adminRequest<{ message: string }>(`/students/${id}`, { method: 'DELETE' }),
   suspend: (id: string) => adminRequest<{ message: string; student: Student }>(`/students/${id}/suspend`, { method: 'PUT' }),
   activate: (id: string) => adminRequest<{ message: string; student: Student }>(`/students/${id}/activate`, { method: 'PUT' }),
+  rateCourse: (id: string, courseName: string, rating: number) =>
+    adminRequest<Student>(`/students/${id}/rate-course`, { method: 'PUT', body: JSON.stringify({ courseName, rating }) }),
 }
 
 // ── Skills ────────────────────────────────────────────
 export const adminSkillsApi = {
   getAll: () => adminRequest<SkillStat[]>('/skills'),
+  create: (name: string) => adminRequest<any>('/skills', { method: 'POST', body: JSON.stringify({ name }) }),
   rename: (oldName: string, newName: string) =>
     adminRequest<{ message: string }>('/skills/rename', { method: 'PUT', body: JSON.stringify({ oldName, newName }) }),
   delete: (name: string) => adminRequest<{ message: string }>(`/skills/${encodeURIComponent(name)}`, { method: 'DELETE' }),
@@ -157,7 +182,20 @@ export const adminNotificationsApi = {
 
 // ── Course Directory ───────────────────────────────────
 export interface Course {
-  id: string; name: string; description: string; category: string; icon: string; isActive: boolean; createdAt: string
+  _id: string
+  id?: string
+  name: string
+  description: string
+  category: string
+  icon?: string
+  officialWebsite?: string
+  learningResources?: string
+  youtubeUrl?: string
+  questionBankUrl?: string
+  questionBankTitle?: string
+  questionBankContent?: string
+  isActive: boolean
+  createdAt: string
 }
 
 export const adminCoursesApi = {

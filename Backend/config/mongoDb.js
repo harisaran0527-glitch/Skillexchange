@@ -1,5 +1,7 @@
 const mongoose = require('mongoose')
 
+const dns = require('dns')
+
 let dbError = null
 
 const getDbError = () => dbError
@@ -44,9 +46,36 @@ const connectMongoDB = async () => {
     return
   }
 
+  // Try to test resolving the MongoDB Atlas host using standard DNS.
+  // If resolution fails, fallback to Cloudflare/Google DNS servers.
+  if (uri.startsWith('mongodb+srv://')) {
+    try {
+      const hostPart = uri.split('@')[1]?.split('/')[0]?.split('?')[0];
+      if (hostPart) {
+        console.log(`[DB] Testing DNS resolution for: ${hostPart}`);
+        await new Promise((resolve, reject) => {
+          dns.resolveTxt('_mongodb._tcp.' + hostPart, (err, addresses) => {
+            if (err) reject(err);
+            else resolve(addresses);
+          });
+        });
+        console.log('[DB] System DNS resolved MongoDB SRV host successfully.');
+      }
+    } catch (resolveErr) {
+      console.warn('[DB] System DNS resolution failed, applying public DNS fallback (8.8.8.8, 1.1.1.1):', resolveErr.message);
+      try {
+        dns.setServers(['8.8.8.8', '1.1.1.1']);
+      } catch (dnsErr) {
+        console.warn('[DB] Warning: Could not set custom DNS servers:', dnsErr.message);
+      }
+    }
+  }
+
   try {
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000 // 5 seconds connection timeout
+      serverSelectionTimeoutMS: 5000, // 5 seconds connection timeout
+      maxPoolSize: 10,
+      minPoolSize: 2
     })
     console.log('[DB] Connected to MongoDB Atlas database successfully')
     dbError = null

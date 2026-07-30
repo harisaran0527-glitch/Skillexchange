@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: skillexchange-backend
+    name: skillexchange-service
     runtime: node
-    buildCommand: npm install
+    buildCommand: cd frontend && npm install && npm run build && cd .. && npm install
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -19,7 +19,14 @@ services:
         value: 7d
       - key: ADMIN_JWT_EXPIRES_IN
         value: 1d
-      - key: CORS_ORIGIN
-        value: "https://skillexchange.onrender.com,https://skill-exchange-blush.vercel.app,https://skillexchange.vercel.app"
-      - key: CORS_CREDENTIALS
-        value: "true"
+      - key: CLIENT_URL
+        sync: false
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+
