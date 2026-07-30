@@ -31,11 +31,13 @@ const connectMongoDB = async () => {
     }
   }
 
-  const uri = process.env.MONGODB_URI || process.env.MONGO_URI
+  const rawUri = process.env.MONGODB_URI || process.env.MONGO_URI || ''
+  // Strip outer quotes and whitespace if MONGODB_URI was copied with quotes in Vercel settings
+  const uri = rawUri.trim().replace(/^["']|["']$/g, '').trim()
 
   // Check if missing or set to default placeholder
-  if (!uri || uri.trim() === '' || uri === 'your_mongodb_atlas_connection_string') {
-    const errMsg = 'MongoDB connection URI is not configured! Please configure MONGODB_URI or MONGO_URI.'
+  if (!uri || uri === 'your_mongodb_atlas_connection_string') {
+    const errMsg = 'MongoDB connection URI is not configured! Please configure MONGODB_URI in Vercel Environment variables.'
     console.error(`[DB] CRITICAL ERROR: ${errMsg}`)
     dbError = new Error(errMsg)
     throw dbError
