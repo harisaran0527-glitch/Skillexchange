@@ -34,6 +34,10 @@ const connectMongoDB = async () => {
   const rawUri = process.env.MONGODB_URI || process.env.MONGO_URI || ''
   // Strip outer quotes and whitespace if MONGODB_URI was copied with quotes in Vercel settings
   const uri = rawUri.trim().replace(/^["']|["']$/g, '').trim()
+  const hasUri = Boolean(uri)
+  const schemePrefix = uri.startsWith('mongodb+srv://') ? 'mongodb+srv://' : uri.startsWith('mongodb://') ? 'mongodb://' : (uri ? 'invalid_scheme' : 'none')
+
+  console.log(`[DB Diagnostic] MONGODB_URI exists: ${hasUri}, scheme: "${schemePrefix}"`)
 
   // Check if missing or set to default placeholder
   if (!uri || uri === 'your_mongodb_atlas_connection_string') {

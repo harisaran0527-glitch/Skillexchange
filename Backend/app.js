@@ -60,8 +60,25 @@ app.use(cors(corsOptions))
 app.options('*', cors(corsOptions))
 app.use(express.json({ limit: '10mb' }))
 
-// Health & readiness (bypasses DB check)
-app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
+// Health & readiness
+app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose')
+  const rawUri = process.env.MONGODB_URI || process.env.MONGO_URI || ''
+  const trimmed = rawUri.trim().replace(/^["']|["']$/g, '').trim()
+  const uriScheme = trimmed.startsWith('mongodb+srv://')
+    ? 'mongodb+srv://'
+    : trimmed.startsWith('mongodb://')
+    ? 'mongodb://'
+    : (trimmed ? 'invalid_scheme' : 'missing')
+
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    dbConnected: mongoose.connection.readyState === 1,
+    hasMongodbUri: Boolean(rawUri),
+    uriScheme
+  })
+})
 app.get('/api/readiness', (req, res) => res.json({ readyState: 1 }))
 
 // DB Connection Middleware for all API endpoints
