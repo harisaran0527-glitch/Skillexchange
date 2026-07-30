@@ -60,6 +60,25 @@ app.use(cors(corsOptions))
 app.options('*', cors(corsOptions))
 app.use(express.json({ limit: '10mb' }))
 
+// Health & readiness (bypasses DB check)
+app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
+app.get('/api/readiness', (req, res) => res.json({ readyState: 1 }))
+
+// DB Connection Middleware for all API endpoints
+app.use('/api', async (req, res, next) => {
+  try {
+    const { connectMongoDB } = require('./config/mongoDb')
+    await connectMongoDB()
+    next()
+  } catch (err) {
+    console.error('[API Middleware] DB Connection Error:', err.message || err)
+    return res.status(503).json({
+      success: false,
+      message: 'Database connection failed. Please verify MONGODB_URI configuration and database access.'
+    })
+  }
+})
+
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
