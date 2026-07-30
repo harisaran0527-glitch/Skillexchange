@@ -35,9 +35,13 @@ const connectMongoDB = async () => {
   // Strip outer quotes and whitespace if MONGODB_URI was copied with quotes in Vercel settings
   const uri = rawUri.trim().replace(/^["']|["']$/g, '').trim()
   const hasUri = Boolean(uri)
-  const schemePrefix = uri.startsWith('mongodb+srv://') ? 'mongodb+srv://' : uri.startsWith('mongodb://') ? 'mongodb://' : (uri ? 'invalid_scheme' : 'none')
+  const schemePrefix = uri.startsWith('mongodb+srv://')
+    ? 'mongodb+srv://'
+    : uri.startsWith('mongodb://')
+    ? 'mongodb://'
+    : (uri ? 'invalid_scheme' : 'none')
 
-  console.log(`[DB Diagnostic] MONGODB_URI exists: ${hasUri}, scheme: "${schemePrefix}"`)
+  console.log(`[DB Diagnostic] MONGODB_URI exists: ${hasUri ? 'yes' : 'no'}, valid scheme: "${schemePrefix}"`)
 
   // Check if missing or set to default placeholder
   if (!uri || uri === 'your_mongodb_atlas_connection_string') {
@@ -63,41 +67,38 @@ const connectMongoDB = async () => {
     throw dbError
   }
 
-  // DNS fallback for SRV records if system DNS fails
+  // Safe DNS fallback for SRV records if system DNS blocks _mongodb._tcp lookups
   if (uri.startsWith('mongodb+srv://')) {
     try {
       const hostPart = uri.split('@')[1]?.split('/')[0]?.split('?')[0]
       if (hostPart) {
-        await new Promise((resolve, reject) => {
-          dns.resolveSrv('_mongodb._tcp.' + hostPart, (err, addrs) => {
-            if (err) reject(err)
-            else resolve(addrs)
+        await new Promise((resolve) => {
+          dns.resolveSrv('_mongodb._tcp.' + hostPart, (err) => {
+            if (err) {
+              try { dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']) } catch (_) {}
+            }
+            resolve()
           })
         })
       }
-    } catch (srvErr) {
-      try {
-        dns.setServers(['8.8.8.8', '1.1.1.1'])
-      } catch (_) {}
-    }
+    } catch (_) {}
   }
 
   // Disable command buffering so Mongoose fails fast if disconnected instead of buffering for 10000ms
   mongoose.set('bufferCommands', false)
 
-  console.log('[DB] Connecting to MongoDB Atlas...')
+  console.log('[DB] Attempting connection to MongoDB Atlas...')
 
   cachedPromise = mongoose.connect(uri, {
     serverSelectionTimeoutMS: 5000, // 5 seconds timeout
     maxPoolSize: 10,
-    minPoolSize: 1,
     bufferCommands: false
   }).then((m) => {
     console.log('[DB] Connected to MongoDB Atlas database successfully')
     dbError = null
     return m
   }).catch((error) => {
-    console.error(`[DB] MongoDB connection failure: ${error.message}`)
+    console.error(`[DB] MongoDB connection failure: ${error.name} - ${error.message}`)
     dbError = error
     cachedPromise = null
     throw error
