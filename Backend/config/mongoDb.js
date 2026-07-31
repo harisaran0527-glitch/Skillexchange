@@ -45,7 +45,7 @@ const connectMongoDB = async () => {
 
   // Check if missing or set to default placeholder
   if (!uri || uri === 'your_mongodb_atlas_connection_string') {
-    const errMsg = 'MongoDB connection URI is not configured! Please configure MONGODB_URI in Vercel Environment variables.'
+    const errMsg = 'MongoDB connection URI is not configured! Please configure MONGODB_URI in environment variables.'
     console.error(`[DB] CRITICAL ERROR: ${errMsg}`)
     dbError = new Error(errMsg)
     throw dbError

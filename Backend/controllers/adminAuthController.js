@@ -35,7 +35,7 @@ exports.adminLogin = async (req, res, next) => {
     if (dbErr) {
       console.error(`[Admin Login Attempt] Failed: Database connection error: ${dbErr.message}`)
       return res.status(500).json({
-        message: `Database Connection Failed: ${dbErr.message}. Ensure your MongoDB Atlas credentials and IP access list are configured correctly in Vercel Environment settings.`
+        message: `Database Connection Failed: ${dbErr.message}. Ensure your MongoDB Atlas credentials and IP access list are configured correctly in Environment settings.`
       })
     }
 
