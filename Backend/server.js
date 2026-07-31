@@ -44,7 +44,7 @@ async function startServer() {
   await connectMongoDB()
 
   const PORT = parseInt(process.env.PORT || '5005', 10)
-  const HOST = process.env.HOST || '127.0.0.1'
+  const HOST = process.env.HOST || '0.0.0.0'
 
   console.log(`[Diagnostic] PID: ${process.pid}`)
   console.log(`[Diagnostic] Attempting to listen on ${HOST}:${PORT} ...`)

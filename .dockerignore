@@ -1,0 +1,15 @@
+node_modules
+Backend/node_modules
+Backend/frontend/node_modules
+dist
+Backend/frontend/dist
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.vercel
+Backend/frontend/.vercel
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
