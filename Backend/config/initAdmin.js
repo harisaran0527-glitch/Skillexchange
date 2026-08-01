@@ -13,33 +13,24 @@ async function ensureAdminExists() {
     const seedEmail = process.env.SEED_ADMIN_EMAIL
     const seedPassword = process.env.SEED_ADMIN_PASSWORD
 
-    // 1. Check if any admin already exists in the 'admins' collection
-    const existingCount = await Admin.countDocuments()
-    if (existingCount > 0) {
-      console.log(`[Admin Auto-Init] Safe check: ${existingCount} admin(s) already exist in database. Skipping initialization.`)
-      return
-    }
-
-    // 2. If no admin exists, verify environment variables
     if (!seedEmail || !seedPassword) {
-      console.log('[Admin Auto-Init] Note: No admin account found in database. Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD in environment variables to auto-create initial admin.')
+      console.log('[Admin Auto-Init] Note: SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD not set in environment variables.')
       return
     }
 
     const targetEmail = seedEmail.toLowerCase().trim()
+    const adminExists = await Admin.findOne({ email: targetEmail })
+    if (adminExists) {
+      console.log(`[Admin Auto-Init] Safe check: Admin user (${targetEmail}) already exists in database.`)
+      return
+    }
+
     if (seedPassword.length < 6) {
       console.error('[Admin Auto-Init] Error: SEED_ADMIN_PASSWORD must be at least 6 characters long.')
       return
     }
 
-    // 3. Double-check by email
-    const adminExists = await Admin.findOne({ email: targetEmail })
-    if (adminExists) {
-      console.log(`[Admin Auto-Init] Safe check: Admin user (${targetEmail}) already exists.`)
-      return
-    }
-
-    // 4. Hash password securely with bcrypt
+    // Hash password securely with bcrypt
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(seedPassword, salt)
 

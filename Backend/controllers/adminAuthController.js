@@ -40,7 +40,14 @@ exports.adminLogin = async (req, res, next) => {
     }
 
     console.log('[Admin Login Attempt] Performing database lookup for admin account')
-    const admin = await Admin.findOne({ email: inputEmail })
+    let admin = await Admin.findOne({ email: inputEmail })
+    if (!admin) {
+      // Trigger safe admin initializer if account missing
+      const ensureAdminExists = require('../config/initAdmin')
+      await ensureAdminExists()
+      admin = await Admin.findOne({ email: inputEmail })
+    }
+
     if (!admin) {
       console.warn(`[Admin Login Attempt] Failed: No admin user found for email: ${inputEmail}`)
       return res.status(401).json({ message: 'Invalid credentials: Admin account does not exist' })
