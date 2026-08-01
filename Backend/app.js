@@ -62,8 +62,11 @@ app.options('*', cors(corsOptions))
 app.use(express.json({ limit: '10mb' }))
 
 // Health & readiness
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   const mongoose = require('mongoose')
+  const Admin = require('./models/Admin')
+  const ensureAdminExists = require('./config/initAdmin')
+
   const rawUri = process.env.MONGODB_URI || process.env.MONGO_URI || ''
   const trimmed = rawUri.trim().replace(/^["']|["']$/g, '').trim()
   const uriScheme = trimmed.startsWith('mongodb+srv://')
@@ -72,12 +75,35 @@ app.get('/api/health', (req, res) => {
     ? 'mongodb://'
     : (trimmed ? 'invalid_scheme' : 'missing')
 
+  let adminCount = -1
+  let adminCollectionName = Admin.collection ? Admin.collection.name : 'unknown'
+  let initResult = null
+
+  if (mongoose.connection.readyState === 1) {
+    try {
+      initResult = await ensureAdminExists()
+      adminCount = await Admin.countDocuments()
+    } catch (err) {
+      initResult = { success: false, error: err.message || String(err) }
+    }
+  }
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
+    commit: 'b4a819c',
     dbConnected: mongoose.connection.readyState === 1,
     hasMongodbUri: Boolean(rawUri),
-    uriScheme
+    uriScheme,
+    envVars: {
+      SEED_ADMIN_EMAIL: Boolean(process.env.SEED_ADMIN_EMAIL),
+      SEED_ADMIN_PASSWORD: Boolean(process.env.SEED_ADMIN_PASSWORD)
+    },
+    adminDiagnostics: {
+      adminCollectionName,
+      adminCount,
+      initResult
+    }
   })
 })
 app.get('/api/readiness', (req, res) => res.json({ readyState: 1 }))
