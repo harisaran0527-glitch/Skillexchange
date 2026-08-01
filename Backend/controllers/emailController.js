@@ -1,35 +1,62 @@
 const nodemailer = require('nodemailer')
 const EmailLog = require('../models/EmailLog')
 
-// Create transporter (use Gmail with App Password)
+// Create transporter (use Gmail SMTP on port 465 with SSL/TLS)
 const createTransporter = () => {
+  const user = (process.env.EMAIL_USER || '').trim()
+  const pass = (process.env.EMAIL_PASS || '').trim().replace(/\s+/g, '')
+
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      user,
+      pass
+    },
+    tls: {
+      rejectUnauthorized: false
     }
   })
 }
 
 // Send email and log it
 const sendEmail = async ({ to, toName, subject, html }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('[Email] EMAIL_USER or EMAIL_PASS not configured. Email not sent.')
-    // Still log to DB for demo purposes
-    await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'skipped' }).catch(() => {})
-    return { success: false, message: 'Email not configured' }
+  const emailUser = (process.env.EMAIL_USER || '').trim()
+  const emailPass = (process.env.EMAIL_PASS || '').trim()
+
+  const safeSender = emailUser ? `${emailUser.substring(0, 3)}***@${emailUser.split('@')[1] || 'gmail.com'}` : 'not_configured'
+  console.log(`[Email] sendEmail invoked -> Sender: ${safeSender}, Recipient: ${to}, Subject: "${subject}"`)
+
+  if (!emailUser || !emailPass) {
+    const errorMsg = 'EMAIL_USER or EMAIL_PASS environment variable is missing.'
+    console.warn(`[Email] FAILED: ${errorMsg}`)
+    await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'skipped', error: errorMsg }).catch(() => {})
+    return { success: false, message: errorMsg }
   }
 
   try {
     const transporter = createTransporter()
-    await transporter.sendMail({ from: `"SkillSwap" <${process.env.EMAIL_USER}>`, to, subject, html })
-    await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'sent' }).catch(() => {})
-    return { success: true }
+    
+    // Verify SMTP connection before sending
+    await transporter.verify()
+    console.log('[Email] Transporter SMTP connection verified successfully!')
+
+    const info = await transporter.sendMail({
+      from: `"SkillExchange" <${emailUser}>`,
+      to,
+      subject,
+      html
+    })
+
+    console.log(`[Email] ✅ Email sent successfully to ${to}! MessageId: ${info.messageId}`)
+    await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'sent', error: '' }).catch(() => {})
+    return { success: true, messageId: info.messageId }
   } catch (err) {
-    console.error('[Email] Send failed:', err.message)
-    await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'failed' }).catch(() => {})
-    return { success: false, message: err.message }
+    const errorMsg = err.message || String(err)
+    console.error(`[Email] ❌ sendMail failed to ${to}:`, err.stack || errorMsg)
+    await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'failed', error: errorMsg }).catch(() => {})
+    return { success: false, message: errorMsg }
   }
 }
 

@@ -171,6 +171,99 @@ app.get('/api/inspect-db', async (req, res) => {
   }
 })
 
+// Email Diagnostic & SMTP Verification Endpoint
+app.get('/api/email-status', async (req, res) => {
+  const nodemailer = require('nodemailer')
+  const EmailLog = require('./models/EmailLog')
+
+  const emailUser = (process.env.EMAIL_USER || '').trim()
+  const emailPass = (process.env.EMAIL_PASS || '').trim()
+
+  const hasUser = Boolean(emailUser)
+  const hasPass = Boolean(emailPass)
+
+  const obfuscatedUser = hasUser
+    ? `${emailUser.substring(0, 3)}***@${emailUser.split('@')[1] || 'gmail.com'}`
+    : 'MISSING'
+
+  let smtpVerified = false
+  let smtpError = null
+
+  if (hasUser && hasPass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+          user: emailUser,
+          pass: emailPass.replace(/\s+/g, '')
+        },
+        tls: { rejectUnauthorized: false }
+      })
+      await transporter.verify()
+      smtpVerified = true
+    } catch (err) {
+      smtpVerified = false
+      smtpError = err.message || String(err)
+    }
+  } else {
+    smtpError = 'EMAIL_USER or EMAIL_PASS environment variable is missing.'
+  }
+
+  let recentLogs = []
+  try {
+    recentLogs = await EmailLog.find().sort({ createdAt: -1 }).limit(10).select('-body')
+  } catch (_) {}
+
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    envVars: {
+      EMAIL_USER: hasUser ? 'YES' : 'NO',
+      EMAIL_PASS: hasPass ? 'YES' : 'NO',
+      obfuscatedUser
+    },
+    smtpStatus: {
+      connected: smtpVerified,
+      error: smtpError
+    },
+    recentEmailLogsCount: recentLogs.length,
+    recentEmailLogs: recentLogs
+  })
+})
+
+// Real Production Test Email Trigger Endpoint
+app.post('/api/test-send-email', async (req, res) => {
+  const { sendEmail } = require('./controllers/emailController')
+  const targetEmail = req.body?.email || req.query?.email || process.env.EMAIL_USER
+
+  if (!targetEmail) {
+    return res.status(400).json({ error: 'Please provide recipient email in request body: { "email": "recipient@domain.com" }' })
+  }
+
+  console.log(`[Test Email Endpoint] Initiating test email send to: ${targetEmail}`)
+
+  const result = await sendEmail({
+    to: targetEmail,
+    toName: 'SkillExchange User',
+    subject: 'SkillExchange Production SMTP Test Notification',
+    html: `
+      <div style="font-family:sans-serif;padding:24px;background:#0b0f19;color:#fff;border-radius:12px">
+        <h2 style="color:#60a5fa;margin-top:0">⚡ SkillExchange Live SMTP Diagnostic Test</h2>
+        <p>This is a real test email sent directly from your live production Render server.</p>
+        <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+        <p style="color:#10b981;font-weight:bold">✅ Gmail SMTP connection & authentication verified successfully!</p>
+      </div>
+    `
+  })
+
+  res.json({
+    targetEmail,
+    result
+  })
+})
+
 // DB Connection Middleware for all API endpoints
 app.use('/api', async (req, res, next) => {
   try {
