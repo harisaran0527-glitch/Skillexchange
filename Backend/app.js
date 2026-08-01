@@ -108,6 +108,68 @@ app.get('/api/health', async (req, res) => {
 })
 app.get('/api/readiness', (req, res) => res.json({ readyState: 1 }))
 
+// Cluster & Database Inspector
+app.get('/api/inspect-db', async (req, res) => {
+  const mongoose = require('mongoose')
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ error: 'Database connection not established' })
+  }
+
+  try {
+    const adminDb = mongoose.connection.db.admin()
+    const dbsResult = await adminDb.listDatabases()
+
+    const report = []
+
+    for (const dbInfo of dbsResult.databases) {
+      const dbName = dbInfo.name
+      if (['admin', 'local', 'config'].includes(dbName)) continue
+
+      const dbReport = {
+        name: dbName,
+        sizeOnDisk: dbInfo.sizeOnDisk,
+        collections: []
+      }
+
+      const currentDb = mongoose.connection.useDb(dbName, { useCache: false })
+      const collections = await currentDb.db.listCollections().toArray()
+
+      for (const col of collections) {
+        const colName = col.name
+        const count = await currentDb.db.collection(colName).countDocuments()
+        let sampleKeys = []
+        let sampleDoc = null
+
+        if (count > 0) {
+          const sample = await currentDb.db.collection(colName).find().limit(1).toArray()
+          if (sample[0]) {
+            sampleDoc = { ...sample[0] }
+            delete sampleDoc.password
+            sampleKeys = Object.keys(sampleDoc)
+          }
+        }
+
+        dbReport.collections.push({
+          name: colName,
+          count,
+          sampleKeys,
+          sampleDoc
+        })
+      }
+
+      report.push(dbReport)
+    }
+
+    res.json({
+      currentDatabaseName: mongoose.connection.db.databaseName,
+      databases: report
+    })
+  } catch (err) {
+    console.error('[DB Inspector Error]', err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
 // DB Connection Middleware for all API endpoints
 app.use('/api', async (req, res, next) => {
   try {
