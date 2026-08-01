@@ -38,6 +38,7 @@ app.use((req, res, next) => {
 const rawOrigins = process.env.CORS_ORIGIN || ''
 const allowedOrigins = rawOrigins ? rawOrigins.split(',').map(s => s.trim()).filter(Boolean) : []
 const vercelPattern = /\.vercel\.app$/
+const renderPattern = /\.onrender\.com$/
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -45,8 +46,8 @@ const corsOptions = {
     if (!origin) return callback(null, true)
     // If no explicit allowed list, allow all (open in development)
     if (allowedOrigins.length === 0) return callback(null, true)
-    // Allow listed origins or any Vercel preview/production URL
-    if (allowedOrigins.includes(origin) || vercelPattern.test(origin)) {
+    // Allow listed origins or any Vercel/Render preview/production URL
+    if (allowedOrigins.includes(origin) || vercelPattern.test(origin) || renderPattern.test(origin)) {
       return callback(null, true)
     }
     return callback(new Error('Not allowed by CORS: ' + origin))
@@ -109,9 +110,7 @@ app.use('/api/chat', chatRoutes)
 app.use('/api/admin/auth', adminAuthRoutes)
 app.use('/api/admin', adminProtect, adminRoutes)
 
-// Health & readiness
-app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
-app.get('/api/readiness', (req, res) => res.json({ readyState: 1 }))
+
 
 // ─── Frontend Static Build (SPA fallback for standalone deployment) ─────────
 const possibleFrontendPaths = [

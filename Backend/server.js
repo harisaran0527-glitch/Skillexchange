@@ -41,7 +41,7 @@ async function startServer() {
   const { connectMongoDB } = require('./config/mongoDb')
 
   await connectDB()
-  await connectMongoDB()
+  connectMongoDB().catch(err => console.error('[DB Initial Load Error]', err.message || err))
 
   const PORT = parseInt(process.env.PORT || '5005', 10)
   const HOST = process.env.HOST || '0.0.0.0'
