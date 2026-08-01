@@ -90,6 +90,7 @@ const connectMongoDB = async () => {
   console.log('[DB] Attempting connection to MongoDB Atlas...')
 
   cachedPromise = mongoose.connect(uri, {
+    dbName: 'skillswap',
     serverSelectionTimeoutMS: 5000, // 5 seconds timeout
     maxPoolSize: 10,
     bufferCommands: false

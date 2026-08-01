@@ -91,8 +91,9 @@ app.get('/api/health', async (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    commit: 'b4a819c',
+    commit: 'e28f910',
     dbConnected: mongoose.connection.readyState === 1,
+    currentDatabaseName: mongoose.connection.db ? mongoose.connection.db.databaseName : 'unknown',
     hasMongodbUri: Boolean(rawUri),
     uriScheme,
     envVars: {
