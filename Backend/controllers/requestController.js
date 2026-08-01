@@ -20,6 +20,15 @@ exports.createRequest = async (req, res, next) => {
     ])
     if (!toUser) return res.status(404).json({ message: 'Target student not found' })
 
+    // Validate selected teacher's database email from MongoDB
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const teacherEmail = (toUser.email || '').trim()
+
+    if (!teacherEmail || !emailRegex.test(teacherEmail)) {
+      console.warn(`[Teaching Request] Failed: Selected teacher (${toUser.name}, ID: ${toUserId}) does not have a valid email address.`)
+      return res.status(400).json({ message: 'Selected teacher does not have a valid email address.' })
+    }
+
     // Check duplicate pending
     const existing = await LearningRequest.findOne({
       studentId: req.user.id,
@@ -65,15 +74,13 @@ exports.createRequest = async (req, res, next) => {
       notificationType: 'System Notification'
     }, req.io)
 
-    // Send email notification
-    if (toUser.email) {
-      sendSessionRequestEmail({
-        toEmail: toUser.email,
-        toName: toUser.name,
-        fromName: fromUser.name,
-        courseName: courseName || skill
-      }).catch(err => console.warn('[Email] Failed:', err.message))
-    }
+    // Send email notification to teacher's saved database email
+    sendSessionRequestEmail({
+      toEmail: teacherEmail,
+      toName: toUser.name,
+      fromName: fromUser.name,
+      courseName: courseName || skill
+    }).catch(err => console.warn('[Email] Notification delivery warning:', err.message))
 
     res.status(201).json({ message: 'Teaching request sent successfully!', request })
   } catch (err) { next(err) }

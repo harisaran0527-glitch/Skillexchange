@@ -20,17 +20,25 @@ const createTransporter = () => {
   })
 }
 
+// Mask email for secure logging (e.g. s***n@example.com)
+function maskEmail(email) {
+  if (!email || typeof email !== 'string' || !email.includes('@')) return '***'
+  const [local, domain] = email.split('@')
+  if (local.length <= 2) return `${local[0]}***@${domain}`
+  return `${local[0]}***${local[local.length - 1]}@${domain}`
+}
+
 // Send email and log it
 const sendEmail = async ({ to, toName, subject, html }) => {
   const emailUser = (process.env.EMAIL_USER || '').trim()
   const emailPass = (process.env.EMAIL_PASS || '').trim()
 
-  const safeSender = emailUser ? `${emailUser.substring(0, 3)}***@${emailUser.split('@')[1] || 'gmail.com'}` : 'not_configured'
-  console.log(`[Email] sendEmail invoked -> Sender: ${safeSender}, Recipient: ${to}, Subject: "${subject}"`)
+  const maskedRecipient = maskEmail(to)
+  console.log(`[Email Attempt] Teacher Name: ${toName || 'Student'}, Recipient Email: ${maskedRecipient}`)
 
   if (!emailUser || !emailPass) {
     const errorMsg = 'EMAIL_USER or EMAIL_PASS environment variable is missing.'
-    console.warn(`[Email] FAILED: ${errorMsg}`)
+    console.warn(`[Email Result] ❌ Skipped for teacher: ${toName || 'Student'} (${maskedRecipient}): ${errorMsg}`)
     await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'skipped', error: errorMsg }).catch(() => {})
     return { success: false, message: errorMsg }
   }
@@ -49,12 +57,12 @@ const sendEmail = async ({ to, toName, subject, html }) => {
       html
     })
 
-    console.log(`[Email] ✅ Email sent successfully to ${to}! MessageId: ${info.messageId}`)
+    console.log(`[Email Result] ✅ Success for teacher: ${toName || 'Student'} (${maskedRecipient}) | MessageId: ${info.messageId}`)
     await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'sent', error: '' }).catch(() => {})
     return { success: true, messageId: info.messageId }
   } catch (err) {
     const errorMsg = err.message || String(err)
-    console.error(`[Email] ❌ sendMail failed to ${to}:`, err.stack || errorMsg)
+    console.error(`[Email Result] ❌ Failed for teacher: ${toName || 'Student'} (${maskedRecipient}): ${errorMsg}`)
     await EmailLog.create({ toEmail: to, toName, subject, body: html, status: 'failed', error: errorMsg }).catch(() => {})
     return { success: false, message: errorMsg }
   }
@@ -63,7 +71,7 @@ const sendEmail = async ({ to, toName, subject, html }) => {
 // Send learning request email to student
 const sendSessionRequestEmail = async ({ toEmail, toName, courseName }) => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173'
-  const subject = `New Teaching Request: ${courseName} – SkillSwap`
+  const subject = 'SkillExchange Teaching Request'
   const html = `
   <!DOCTYPE html>
   <html>
