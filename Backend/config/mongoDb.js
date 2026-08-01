@@ -96,6 +96,10 @@ const connectMongoDB = async () => {
   }).then((m) => {
     console.log('[DB] Connected to MongoDB Atlas database successfully')
     dbError = null
+    try {
+      const ensureAdminExists = require('./initAdmin')
+      ensureAdminExists().catch(e => console.error('[DB] Admin init check error:', e.message))
+    } catch (_) {}
     return m
   }).catch((error) => {
     console.error(`[DB] MongoDB connection failure: ${error.name} - ${error.message}`)

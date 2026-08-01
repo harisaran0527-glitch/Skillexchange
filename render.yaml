@@ -21,3 +21,7 @@ services:
         value: 1d
       - key: CLIENT_URL
         sync: false
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
