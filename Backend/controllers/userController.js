@@ -15,8 +15,8 @@ exports.getPublicStats = async (req, res, next) => {
     })
     const totalSkills = skillSet.size
     
-    const activeRequests = await LearningRequest.countDocuments({ status: 'Pending' })
-    const completedExchanges = await LearningRequest.countDocuments({ status: 'Accepted' })
+    const activeRequests = await LearningRequest.countDocuments({ status: { $in: ['PENDING', 'Pending'] } })
+    const completedExchanges = await LearningRequest.countDocuments({ status: { $in: ['APPROVED', 'Approved', 'Accepted'] } })
     const totalMessages = await Message.countDocuments()
     
     res.json({

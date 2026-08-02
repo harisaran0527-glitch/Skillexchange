@@ -68,18 +68,21 @@ const sendEmail = async ({ to, toName, subject, html }) => {
   }
 }
 
-// Send learning request email to student
-const sendSessionRequestEmail = async ({ toEmail, toName, courseName }) => {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173'
+// Send learning request email to student with secure action buttons
+const sendSessionRequestEmail = async ({ toEmail, toName, fromName, courseName, rawToken, baseUrl }) => {
+  const serverBaseUrl = (baseUrl || process.env.SERVER_URL || process.env.BACKEND_URL || process.env.CLIENT_URL || 'http://localhost:5005').replace(/\/+$/, '')
+  const approveUrl = `${serverBaseUrl}/api/requests/email-action?token=${rawToken}&action=approve`
+  const rejectUrl = `${serverBaseUrl}/api/requests/email-action?token=${rawToken}&action=reject`
+
   const subject = 'SkillExchange Teaching Request'
   const html = `
   <!DOCTYPE html>
   <html>
-  <head><meta charset="UTF-8"></head>
-  <body style="margin:0;padding:0;background:#0b0d1a;font-family:'Segoe UI',sans-serif;color:#ffffff">
+  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+  <body style="margin:0;padding:0;background:#0b0d1a;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#ffffff">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#0b0d1a;min-height:100vh">
       <tr><td align="center" style="padding:40px 20px">
-        <table width="600" cellpadding="0" cellspacing="0" style="background:#111322;border:1px solid rgba(99,102,241,0.2);border-radius:24px;overflow:hidden;max-width:600px">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#111322;border:1px solid rgba(99,102,241,0.2);border-radius:24px;overflow:hidden;max-width:600px;width:100%">
           <!-- Header -->
           <tr><td style="background:linear-gradient(135deg,#6366f1,#7c3aed);padding:36px;text-align:center">
             <h1 style="margin:0;color:#fff;font-size:26px;font-weight:800;letter-spacing:-0.5px">SkillExchange</h1>
@@ -88,19 +91,35 @@ const sendSessionRequestEmail = async ({ toEmail, toName, courseName }) => {
           <!-- Body -->
           <tr><td style="padding:40px">
             <p style="color:#e2e8f0;font-size:16px;line-height:1.6;margin:0 0 16px">
-              Hi <strong style="color:#60a5fa">${toName}</strong>,
+              Hi <strong style="color:#60a5fa">${toName || 'Student'}</strong>,
             </p>
-            <p style="color:#cbd5e1;font-size:15px;line-height:1.6;margin:0 0 20px">
-              A student has requested your help to learn <strong style="color:#a855f7">${courseName}</strong>.
+            <p style="color:#cbd5e1;font-size:15px;line-height:1.6;margin:0 0 24px">
+              <strong style="color:#60a5fa">${fromName || 'A student'}</strong> has requested your help to learn <strong style="color:#a855f7">${courseName}</strong>.
             </p>
             <p style="color:#cbd5e1;font-size:15px;line-height:1.6;margin:0 0 28px">
-              Would you be willing to teach this student?
+              Please choose one option:
             </p>
-            <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 32px">
-              Please open your <strong>SkillExchange Student Portal</strong> and choose <strong>Accept</strong> or <strong>Reject</strong>.
-            </p>
-            <div style="text-align:center">
-              <a href="${clientUrl}/notifications" style="display:inline-block;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;text-decoration:none;padding:14px 36px;border-radius:12px;font-weight:700;font-size:15px;box-shadow:0 4px 16px rgba(37,99,235,0.3)">Open Student Portal →</a>
+            <!-- Action Buttons -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 32px">
+              <tr>
+                <td align="center" style="padding:8px">
+                  <a href="${approveUrl}" style="display:inline-block;min-width:140px;background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:800;font-size:16px;letter-spacing:0.5px;box-shadow:0 4px 14px rgba(16,185,129,0.35);text-align:center">OK</a>
+                </td>
+                <td align="center" style="padding:8px">
+                  <a href="${rejectUrl}" style="display:inline-block;min-width:140px;background:linear-gradient(135deg,#f43f5e,#e11d48);color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:800;font-size:16px;letter-spacing:0.5px;box-shadow:0 4px 14px rgba(244,63,94,0.35);text-align:center">CANCEL</a>
+                </td>
+              </tr>
+            </table>
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;margin-bottom:24px">
+              <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 8px">
+                <strong style="color:#10b981">OK</strong> means you accept the request.
+              </p>
+              <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 8px">
+                <strong style="color:#f43f5e">CANCEL</strong> means you reject the request.
+              </p>
+              <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0">
+                If you do not choose either option, the request will remain <strong>Pending</strong>.
+              </p>
             </div>
           </td></tr>
           <!-- Footer -->

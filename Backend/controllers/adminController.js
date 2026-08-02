@@ -515,31 +515,11 @@ exports.getAllRequests = async (req, res, next) => {
 }
 
 exports.approveRequest = async (req, res, next) => {
-  try {
-    const request = await LearningRequest.findByIdAndUpdate(
-      req.params.id,
-      { status: 'Accepted' },
-      { new: true }
-    )
-    if (!request) return res.status(404).json({ message: 'Request not found' })
-    res.json({ message: 'Request approved', request })
-  } catch (err) {
-    next(err)
-  }
+  return res.status(403).json({ message: 'Admin cannot approve or reject teaching requests. Approval decision must happen only through the teacher email.' })
 }
 
 exports.rejectRequest = async (req, res, next) => {
-  try {
-    const request = await LearningRequest.findByIdAndUpdate(
-      req.params.id,
-      { status: 'Rejected' },
-      { new: true }
-    )
-    if (!request) return res.status(404).json({ message: 'Request not found' })
-    res.json({ message: 'Request rejected', request })
-  } catch (err) {
-    next(err)
-  }
+  return res.status(403).json({ message: 'Admin cannot approve or reject teaching requests. Approval decision must happen only through the teacher email.' })
 }
 
 exports.deleteRequest = async (req, res, next) => {

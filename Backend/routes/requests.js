@@ -3,9 +3,10 @@ const router = express.Router()
 const { protect } = require('../middleware/authMiddleware')
 const {
   createRequest, getReceivedRequests, getSentRequests,
-  acceptRequest, rejectRequest, leaveReview
+  acceptRequest, rejectRequest, leaveReview, emailAction
 } = require('../controllers/requestController')
 
+router.get('/email-action', emailAction)
 router.post('/', protect, createRequest)
 router.get('/received', protect, getReceivedRequests)
 router.get('/sent', protect, getSentRequests)

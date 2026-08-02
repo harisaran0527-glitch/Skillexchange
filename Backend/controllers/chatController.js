@@ -21,9 +21,9 @@ exports.sendMessage = async (req, res, next) => {
     const { receiverId, message, fileUrl, fileType } = req.body
     if (!receiverId || !message) return res.status(400).json({ message: 'receiverId and message are required' })
 
-    // Only allow chat if there's an accepted request
+    // Only allow chat if there's an approved request
     const LearningRequest = require('../models/LearningRequest');
-    const request = await LearningRequest.findOne({ status: 'Accepted', $or: [{ studentId: req.user.id, tutorId: receiverId }, { studentId: receiverId, tutorId: req.user.id }] })
+    const request = await LearningRequest.findOne({ status: { $in: ['APPROVED', 'Approved', 'Accepted'] }, $or: [{ studentId: req.user.id, tutorId: receiverId }, { studentId: receiverId, tutorId: req.user.id }] })
     if (!request) return res.status(403).json({ message: 'Chat is only available for accepted sessions.' })
 
     const newMessage = new Message({

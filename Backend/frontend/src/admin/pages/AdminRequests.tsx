@@ -80,16 +80,6 @@ export default function AdminRequests() {
       key: 'actions', label: 'Actions',
       render: (r: LearningRequest) => (
         <div className="flex items-center gap-2">
-          {((r.status || '').toUpperCase() === 'PENDING') && (
-            <>
-              <button onClick={() => handleAction(r._id, 'approve')} className="p-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-400 transition-colors" title="Approve">
-                <Check size={14} />
-              </button>
-              <button onClick={() => handleAction(r._id, 'reject')} className="p-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 transition-colors" title="Reject">
-                <X size={14} />
-              </button>
-            </>
-          )}
           <button onClick={() => handleAction(r._id, 'delete')} className="p-1.5 rounded-lg bg-white/5 text-slate-300 hover:bg-rose-500/20 hover:text-rose-400 transition-colors" title="Delete">
             <Trash2 size={14} />
           </button>

@@ -11,7 +11,10 @@ const learningRequestSchema = new mongoose.Schema({
   status: { type: String, default: 'PENDING', enum: ['PENDING', 'APPROVED', 'REJECTED', 'Pending', 'Accepted', 'Approved', 'Rejected'] },
   requestDate: { type: String },
   requestTime: { type: String },
-  message: { type: String }
+  message: { type: String },
+  actionTokenHash: { type: String, default: null },
+  actionTokenExpiry: { type: Date, default: null },
+  tokenUsed: { type: Boolean, default: false }
 }, { timestamps: true })
 
 module.exports = mongoose.model('LearningRequest', learningRequestSchema)

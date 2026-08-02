@@ -35,20 +35,6 @@ export default function Notifications() {
     }
   }
 
-  async function handleAccept(id: string) {
-    try {
-      await requestApi.accept(id)
-      setReceivedRequests(reqs => reqs.map(r => r.id === id ? { ...r, status: 'APPROVED' } : r))
-    } catch (err: any) { alert(err.message) }
-  }
-
-  async function handleReject(id: string) {
-    try {
-      await requestApi.reject(id)
-      setReceivedRequests(reqs => reqs.map(r => r.id === id ? { ...r, status: 'REJECTED' } : r))
-    } catch (err: any) { alert(err.message) }
-  }
-
   return (
     <MainLayout>
       <div className="max-w-4xl mx-auto space-y-8">
@@ -110,28 +96,13 @@ export default function Notifications() {
                             </div>
 
                             <div className="flex items-center gap-3 self-end sm:self-center">
-                              {status === 'PENDING' ? (
-                                <>
-                                  <button 
-                                    onClick={() => handleReject(req.id)}
-                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all flex items-center gap-1.5"
-                                  >
-                                    <X size={15} /> Reject
-                                  </button>
-                                  <button 
-                                    onClick={() => handleAccept(req.id)}
-                                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 shadow-lg shadow-blue-600/30 transition-all flex items-center gap-1.5 active:scale-95"
-                                  >
-                                    <Check size={16} /> Accept
-                                  </button>
-                                </>
-                              ) : (
-                                <span className={`px-3 py-1.5 rounded-xl text-xs font-extrabold tracking-wider uppercase border ${
-                                  status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                }`}>
-                                  {status}
-                                </span>
-                              )}
+                              <span className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold tracking-wider uppercase border ${
+                                status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              }`}>
+                                {status}
+                              </span>
                             </div>
                           </motion.div>
                         )
